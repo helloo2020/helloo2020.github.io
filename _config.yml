@@ -1,6 +1,6 @@
 # Site settings
-title: Scond
-SEOTitle: Scond的个人博客
+title: Tim的Blog
+SEOTitle: Tim的个人博客
 header-img: img/homepage.JPG
 email: zenjury@gmail.com
 description: "跑步、阅读、旅行，一生的爱好."
@@ -10,7 +10,7 @@ baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
-sidebar-about-description: "tomorrow is another day!"
+sidebar-about-description: "Tomorrow is another day!"
 sidebar-avatar: /img/avatar-by.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
