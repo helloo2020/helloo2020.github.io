@@ -93,6 +93,8 @@
                 <p class="copyright text-muted">
                     Copyright &copy; {{ site.title }} {{ site.time | date: '%Y' }}
                     <br>
+                    <span data-blog-visit-count>访问统计加载中</span>
+                    <br>
                     Theme on <a href="{{ site.github_repo }}">GitHub</a> |
                     <iframe
                         style="margin-left: 2px; margin-bottom:-5px;"
@@ -113,6 +115,15 @@
 
 <!-- Custom Theme JavaScript -->
 <script src="{{ "/js/hux-blog.min.js " | prepend: site.baseurl }}"></script>
+
+<!-- Scond visit counter -->
+<script
+    src="https://scond.me/visit-counter.js"
+    data-site="blog.scond.me"
+    data-endpoint="https://scond.me/api/visit"
+    data-target="[data-blog-visit-count]"
+    data-increment="true">
+</script>
 
 <!-- Service Worker -->
 {% if site.service-worker %}
@@ -267,4 +278,3 @@
     });
 </script>
 {% endif %}
-
