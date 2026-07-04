@@ -5,7 +5,7 @@ header-img: img/homepage.JPG
 email: zenjury@gmail.com
 description: "跑步、阅读、旅行，一生的爱好."
 keyword: "跑步者, 旅行者, 读书人"
-url: "http://helloo2020.github.io"          # your host, for absolute URL
+url: "https://blog.scond.me"          # your host, for absolute URL
 baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
 
 # Sidebar settings
