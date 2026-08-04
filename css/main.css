@@ -142,7 +142,8 @@ a:hover { text-decoration: underline; }
 }
 
 .page-head {
-  padding: 3rem 0 1.4rem;
+  padding-top: 3rem;
+  padding-bottom: 1.4rem;
   border-bottom: 1px solid var(--hairline);
   margin-bottom: 2.4rem;
 }
@@ -230,7 +231,8 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 /* ---------- 文章页 ---------- */
 
 .post-head {
-  padding: 3.2rem 0 1.6rem;
+  padding-top: 3.2rem;
+  padding-bottom: 1.6rem;
   border-bottom: 1px solid var(--hairline);
   margin-bottom: 2.2rem;
 }
@@ -606,9 +608,9 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
   }
   .site-nav.is-open .nav-links { display: flex; }
   .masthead { padding: 1.6rem 0 1rem; }
-  .page-head { padding: 2.2rem 0 1.1rem; }
+  .page-head { padding-top: 2.2rem; padding-bottom: 1.1rem; }
   .page-head h1 { font-size: 1.7rem; }
-  .post-head { padding: 2.2rem 0 1.3rem; }
+  .post-head { padding-top: 2.2rem; padding-bottom: 1.3rem; }
   .post-head h1 { font-size: 1.7rem; }
   .post-head .subtitle { font-size: 1.06rem; }
   .post-item h2 { font-size: 1.3rem; }
