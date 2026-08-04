@@ -5,7 +5,7 @@ layout: default
     <header class="post-head wrap">
         {% if page.tags.size > 0 %}
         <div class="tags">
-            {% for tag in page.tags %}<a class="tag" data-tag="{{ tag }}" href="{{ '/tags/' | relative_url }}">{{ tag }}</a>{% endfor %}
+            {% for tag in page.tags %}<a class="tag" data-tag="{{ tag }}" href="{{ '/tags/' | relative_url }}#{{ tag }}">{{ tag }}</a>{% endfor %}
         </div>
         {% endif %}
         <h1>{{ page.title }}</h1>

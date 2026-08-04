@@ -65,5 +65,14 @@
         });
       });
     });
+
+    /* 从文章里的标签跳转过来时，自动按该标签筛选 */
+    var initialHash = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+    if (initialHash) {
+      var matchedPill = pills.filter(function (p) {
+        return p.getAttribute('data-filter') === initialHash;
+      })[0];
+      if (matchedPill) matchedPill.click();
+    }
   }
 })();
