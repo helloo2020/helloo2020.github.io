@@ -1,19 +1,18 @@
 <footer class="site-footer">
     <div class="wrap">
-        <p class="footer-bio">{{ site.title }} · {{ site.description }}</p>
-        <p class="footer-contact"><a href="mailto:{{ site.email }}">{{ site.email }}</a></p>
         {% if site.friends %}
         <p class="footer-friends">
             <span class="footer-label">友链</span>
             {% for friend in site.friends %}<a href="{{ friend.href }}" target="_blank" rel="noopener">{{ friend.title }}</a>{% endfor %}
         </p>
         {% endif %}
-        <p class="footer-copy">Copyright © {{ site.title }} {{ site.time | date: '%Y' }} · <span data-blog-visit-count>统计加载中</span></p>
+        <p class="footer-copy">Copyright © {{ site.title }} {{ site.time | date: '%Y' }} · <span data-blog-visit-count>Scond 累计访问加载中</span></p>
     </div>
 </footer>
 
 <script src="https://scond.me/visit-counter.js"
         data-site="blog.scond.me"
+        data-label="Scond"
         data-endpoint="https://scond.me/api/visit"
         data-target="[data-blog-visit-count]"
         data-increment="true"></script>

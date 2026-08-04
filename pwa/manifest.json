@@ -1,6 +1,6 @@
 {
-  "name": "SCOND'S BLOG",
-  "short_name": "Scond Blog",
+  "name": "Scond",
+  "short_name": "Scond",
   "description": "跑步、阅读、旅行，一生的爱好。",
   "icons": [{
     "src": "icons/pwa_icon_128.png",

@@ -1,5 +1,5 @@
 # Site settings
-title: SCOND'S BLOG
+title: Scond
 SEOTitle: Scond的个人博客
 email: zenjury@gmail.com
 description: "跑步、阅读、旅行，一生的爱好。"
@@ -24,10 +24,7 @@ ba_track_id: b50bf2b12b5338a1845e33832976fd
 
 # Friends
 friends: [
-    { title: "我的跑步", href: "https://helloo2020.github.io/Running-Tim/" },
-    { title: "yihong0618", href: "https://github.com/yihong0618/gitblog" },
-    { title: "Apple", href: "https://apple.com" },
-    { title: "Apple Developer", href: "https://developer.apple.com/" }
+    { title: "yihong0618", href: "https://github.com/yihong0618/gitblog" }
 ]
 
 # Progressive Web App
