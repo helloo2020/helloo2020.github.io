@@ -1,4 +1,4 @@
-const PRECACHE = 'precache-v2';
+const PRECACHE = 'precache-v3';
 const RUNTIME = 'runtime';
 const HOSTNAME_WHITELIST = [self.location.hostname];
 
@@ -36,19 +36,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  const cached = caches.match(event.request);
-  const fetched = fetch(event.request, { cache: 'no-store' });
-  const fetchedCopy = fetched.then((resp) => resp.clone());
-
+  // 网络优先：先展示最新内容，断网时回退到缓存或离线页
   event.respondWith(
-    Promise.race([fetched.catch(() => cached), cached])
-      .then((resp) => resp || fetched)
-      .catch(() => caches.match('offline.html'))
-  );
-
-  event.waitUntil(
-    Promise.all([fetchedCopy, caches.open(RUNTIME)])
-      .then(([response, cache]) => response.ok && cache.put(event.request, response))
-      .catch(() => {})
+    fetch(event.request, { cache: 'no-store' })
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(RUNTIME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((hit) => hit || caches.match('offline.html'))
+      )
   );
 });
