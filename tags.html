@@ -7,7 +7,7 @@ description: keep hungry keep foolish
 <div class="filter-pills" role="group" aria-label="按标签筛选">
     <button type="button" class="pill is-active" data-filter="全部">全部</button>
     {% for tag in site.tags %}
-    <button type="button" class="pill" data-filter="{{ tag[0] }}">{{ tag[0] }}</button>
+    <button type="button" class="pill" data-filter="{{ tag[0] }}">{{ tag[0] }}<span class="pill-count">({{ tag[1].size }})</span></button>
     {% endfor %}
 </div>
 

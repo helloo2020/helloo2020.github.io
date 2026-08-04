@@ -1,4 +1,4 @@
-const PRECACHE = 'precache-v3';
+const PRECACHE = 'precache-v4';
 const RUNTIME = 'runtime';
 const HOSTNAME_WHITELIST = [self.location.hostname];
 
@@ -17,7 +17,7 @@ const shouldRedirect = (req) =>
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(PRECACHE).then((cache) =>
-      cache.addAll(['/offline.html', '/css/main.css', '/js/main.js'])
+      cache.addAll(['/offline.html', '/css/main.css?v=20260804', '/js/main.js?v=20260804'])
     ).then(self.skipWaiting())
   );
 });
