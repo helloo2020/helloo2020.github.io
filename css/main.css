@@ -131,7 +131,7 @@ a:hover { text-decoration: underline; }
 /* ---------- 页头 ---------- */
 
 .masthead {
-  padding: 2rem 0 1.2rem;
+  padding: 2rem 0 1.6rem;
   text-align: center;
 }
 .masthead .tagline {
@@ -139,6 +139,14 @@ a:hover { text-decoration: underline; }
   color: var(--ink-soft);
   font-family: var(--sans);
   font-size: 1rem;
+}
+.masthead::after {
+  content: "";
+  display: block;
+  width: 2.5rem;
+  height: 1px;
+  background: var(--accent);
+  margin: 1.2rem auto 0;
 }
 
 .page-head {
@@ -607,7 +615,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
     padding: 0.85rem 1.25rem 1.2rem;
   }
   .site-nav.is-open .nav-links { display: flex; }
-  .masthead { padding: 1.6rem 0 1rem; }
+  .masthead { padding: 1.6rem 0 1.3rem; }
   .page-head { padding-top: 2.2rem; padding-bottom: 1.1rem; }
   .page-head h1 { font-size: 1.7rem; }
   .post-head { padding-top: 2.2rem; padding-bottom: 1.3rem; }
