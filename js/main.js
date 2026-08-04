@@ -1,18 +1,17 @@
 (function () {
   'use strict';
 
-  /* 移动端导航 */
-  var nav = document.getElementById('site-nav');
-  var toggle = document.getElementById('nav-toggle');
-  if (nav && toggle) {
-    toggle.addEventListener('click', function () {
-      var open = nav.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-    document.addEventListener('click', function (e) {
-      if (nav.classList.contains('is-open') && !nav.contains(e.target)) {
-        nav.classList.remove('is-open');
-        toggle.setAttribute('aria-expanded', 'false');
+  /* 深色 / 浅色模式切换 */
+  var themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function () {
+      var html = document.documentElement;
+      if (html.getAttribute('data-theme') === 'dark') {
+        html.removeAttribute('data-theme');
+        try { localStorage.setItem('theme', 'light'); } catch (e) {}
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        try { localStorage.setItem('theme', 'dark'); } catch (e) {}
       }
     });
   }

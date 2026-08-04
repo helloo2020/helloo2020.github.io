@@ -9,6 +9,16 @@
 
 <title>{% if page.title %}{{ page.title }} - {{ site.SEOTitle }}{% else %}{{ site.SEOTitle }}{% endif %}</title>
 
+<script>
+    (function () {
+        try {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    })();
+</script>
+
 <link rel="manifest" href="{{ '/pwa/manifest.json' | relative_url }}">
 <link rel="icon" href="{{ '/img/favicon.ico' | relative_url }}">
 <link rel="apple-touch-icon" href="{{ '/img/apple-touch-icon.png' | relative_url }}">

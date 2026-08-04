@@ -8,10 +8,26 @@
   --accent: #C7952E;
   --link: #80601A;
   --hairline: #E4D4AE;
+  --nav-bg: rgba(247, 240, 223, 0.94);
+  --code-bg: #EFE5CC;
+  --btn-text: #FFF9EC;
   --serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", serif;
   --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --radius: 8px;
+}
+
+[data-theme="dark"] {
+  --paper: #1E1A14;
+  --paper-soft: #272117;
+  --ink: #EDE2CB;
+  --ink-soft: #B7AA8F;
+  --accent: #C7952E;
+  --link: #D9AC4A;
+  --hairline: #4A4032;
+  --nav-bg: rgba(30, 26, 20, 0.94);
+  --code-bg: #3A3124;
+  --btn-text: #1E1A14;
 }
 
 * { box-sizing: border-box; }
@@ -28,6 +44,7 @@ body {
   font-size: 17px;
   line-height: 1.85;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 img { max-width: 100%; height: auto; }
@@ -64,10 +81,11 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(247, 240, 223, 0.94);
+  background: var(--nav-bg);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--hairline);
+  transition: background-color 0.25s ease;
 }
 
 .nav-inner {
@@ -108,25 +126,29 @@ a:hover { text-decoration: underline; }
 .nav-links a:hover { color: var(--link); text-decoration: none; }
 .nav-links a.is-active { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--accent); }
 
-.nav-toggle {
-  display: none;
-  background: none;
-  border: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  cursor: pointer;
-  flex-direction: column;
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.theme-toggle {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--ink-soft);
 }
-.nav-toggle span[aria-hidden] {
-  display: block;
-  width: 20px;
-  height: 2px;
-  background: var(--ink);
-  border-radius: 2px;
-}
+.theme-toggle:hover { color: var(--link); }
+.theme-toggle svg { width: 18px; height: 18px; }
+.icon-moon { display: none; }
+[data-theme="dark"] .icon-sun { display: none; }
+[data-theme="dark"] .icon-moon { display: inline; }
 
 /* ---------- 页头 ---------- */
 
@@ -159,6 +181,29 @@ a:hover { text-decoration: underline; }
   margin: 0 0 0.35rem;
   font-size: 2rem;
   line-height: 1.3;
+}
+.page-head-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+.page-head-row h1 { margin: 0; }
+.rss-btn {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--link);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.1rem 0.62rem;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.rss-btn:hover {
+  background: var(--accent);
+  color: var(--btn-text);
+  text-decoration: none;
 }
 .page-head .tagline {
   margin: 0;
@@ -235,6 +280,13 @@ a:hover { text-decoration: underline; }
 .tag[data-tag="年度回顾"] { background: #E7DFD9; color: #6B5B52; }
 .tag[data-tag="合集"] { background: #D8E1E4; color: #44565E; }
 a.tag:hover { filter: brightness(0.97); text-decoration: none; }
+
+[data-theme="dark"] .tag { background: #4A3E24; color: #E6C887; }
+[data-theme="dark"] .tag[data-tag="思考"] { background: #3D3B31; color: #CFC9AE; }
+[data-theme="dark"] .tag[data-tag="跑步"] { background: #41392D; color: #D8C7A8; }
+[data-theme="dark"] .tag[data-tag="旅行"] { background: #33402F; color: #B9CFAE; }
+[data-theme="dark"] .tag[data-tag="年度回顾"] { background: #40372F; color: #DCC6B8; }
+[data-theme="dark"] .tag[data-tag="合集"] { background: #2F3B40; color: #AFC8D2; }
 
 /* ---------- 文章页 ---------- */
 
@@ -320,7 +372,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 .prose code {
   font-family: var(--mono);
   font-size: 0.9em;
-  background: #EFE5CC;
+  background: var(--code-bg);
   padding: 0.12rem 0.35rem;
   border-radius: 4px;
 }
@@ -592,7 +644,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 }
 .btn:hover {
   background: var(--accent);
-  color: #FFF9EC;
+  color: var(--btn-text);
   text-decoration: none;
 }
 
@@ -600,21 +652,13 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 
 @media (max-width: 760px) {
   body { font-size: 16px; }
-  .nav-toggle { display: flex; }
-  .nav-links {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--paper-soft);
-    border-bottom: 1px solid var(--hairline);
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.9rem;
-    padding: 0.85rem 1.25rem 1.2rem;
-  }
-  .site-nav.is-open .nav-links { display: flex; }
+  .nav-inner { height: 3.4rem; padding: 0 1rem; gap: 0.6rem; }
+  .brand { font-size: 0.95rem; }
+  .nav-right { gap: 0.55rem; }
+  .nav-links { gap: 0.85rem; }
+  .nav-links a { font-size: 0.88rem; }
+  .theme-toggle { width: 2rem; height: 2rem; }
+  .theme-toggle svg { width: 16px; height: 16px; }
   .masthead { padding: 1.6rem 0 1.3rem; }
   .page-head { padding-top: 2.2rem; padding-bottom: 1.1rem; }
   .page-head h1 { font-size: 1.7rem; }

@@ -3,7 +3,12 @@ layout: default
 ---
 <header class="page-head">
     <div class="wrap">
-        <h1>{{ page.title | default: site.title }}</h1>
+        <div class="page-head-row">
+            <h1>{{ page.title | default: site.title }}</h1>
+            {% if page.rss %}
+            <a class="rss-btn" href="{{ '/feed.xml' | relative_url }}">RSS 订阅</a>
+            {% endif %}
+        </div>
         {% if page.description %}<p class="tagline">{{ page.description }}</p>{% endif %}
     </div>
 </header>
