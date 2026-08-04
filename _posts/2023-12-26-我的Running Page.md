@@ -4,10 +4,8 @@ title:      我的Running Page
 subtitle:   2023年让我非常欣慰的一件事
 date:       2023-12-26
 author:     Scond
-header-img: 
-catalog: false
 tags:
-    - Running
+    - 跑步
 ---
 
  经过2天的努力，我的[Running](https://helloo2020.github.io/Running-Tim/)
