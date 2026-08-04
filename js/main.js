@@ -55,7 +55,7 @@
         var filter = pill.getAttribute('data-filter');
         items.forEach(function (item) {
           var tags = ' ' + (item.getAttribute('data-tags') || '') + ' ';
-          item.hidden = filter === '全部' || tags.indexOf(' ' + filter + ' ') > -1;
+          item.hidden = filter !== '全部' && tags.indexOf(' ' + filter + ' ') === -1;
         });
         years.forEach(function (year) {
           var visible = items.some(function (item) {
