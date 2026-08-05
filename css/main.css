@@ -413,6 +413,9 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 }
 .prose .found-list li {
   position: relative;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
   margin: 0.55rem 0;
   padding-left: 1.05rem;
 }
@@ -426,6 +429,27 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
   border-radius: 50%;
   background: var(--ink-soft);
   opacity: 0.8;
+}
+.copy-btn {
+  margin-left: 0.55rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0.24rem 0.55rem;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--link);
+}
+.copy-btn.is-copied {
+  border-color: var(--accent);
+  color: var(--link);
 }
 .prose hr {
   border: 0;

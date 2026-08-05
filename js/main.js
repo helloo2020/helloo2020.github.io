@@ -74,4 +74,41 @@
       if (matchedPill) matchedPill.click();
     }
   }
+
+  /* 复制按钮 */
+  var copyButtons = Array.prototype.slice.call(document.querySelectorAll('.copy-btn'));
+  copyButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy') || '';
+      if (!text) return;
+      var original = btn.textContent;
+      var copied = function () {
+        btn.classList.add('is-copied');
+        btn.textContent = '已复制';
+        setTimeout(function () {
+          btn.classList.remove('is-copied');
+          btn.textContent = original;
+        }, 1500);
+      };
+      var fallbackCopy = function () {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          copied();
+        } catch (e) {}
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(copied, fallbackCopy);
+      } else {
+        fallbackCopy();
+      }
+    });
+  });
 })();
