@@ -15,11 +15,3 @@ rss: true
   <li><a href="https://run.scond.me" target="_blank" rel="noopener">run.scond.me</a> — 跑步</li>
   <li><a href="https://read.scond.me" target="_blank" rel="noopener">read.scond.me</a> — 阅读</li>
 </ul>
-
-<h2>友情链接</h2>
-
-<ul>
-{% for friend in site.friends %}
-  <li><a href="{{ friend.href }}" target="_blank" rel="noopener">{{ friend.title }}</a></li>
-{% endfor %}
-</ul>
