@@ -1,18 +1,25 @@
 ---
 layout: page
 title: 关于
-description: "Hey,我是Scond。"
 rss: true
 ---
 
-<blockquote><p>Yesterday you said tomorrow</p></blockquote>
+<h2>订阅</h2>
 
-<p>Hey，我是<strong>Scond</strong>，一个将读书、跑步、旅行当作一生爱好的人。</p>
+<p>微信公众号：搜索 <strong>Scond</strong> 关注更新</p>
 
-<p>走过20多个国家，200+城市，旅行的意义就是行走在路上，可以看到人生百态，看别人的时候，总会看到自己，就像一面镜子</p>
+<h2>我的主页与站点</h2>
 
-<p>这是自从疫情开始，认真的学习跑步，坚持跑步，已经完成了5次半马，跑步让我快乐，释放的多巴胺，总是让我可以更加积极的生活。</p>
+<ul>
+  <li><a href="https://scond.me" target="_blank" rel="noopener">scond.me</a> — 主页</li>
+  <li><a href="https://run.scond.me" target="_blank" rel="noopener">run.scond.me</a> — 跑步</li>
+  <li><a href="https://read.scond.me" target="_blank" rel="noopener">read.scond.me</a> — 阅读</li>
+</ul>
 
-<p>阅读，是去年开始的。2023年，我读完了接近50本书，可能超过了我之前读过的书的总和。我是后悔的，没有早点读书，不过，现在也不晚</p>
+<h2>友情链接</h2>
 
-<p>开通个人网站，只是想记录我的生活，因为我觉得，只要心怀美好，生活就是值得记忆的晚</p>
+<ul>
+{% for friend in site.friends %}
+  <li><a href="{{ friend.href }}" target="_blank" rel="noopener">{{ friend.title }}</a></li>
+{% endfor %}
+</ul>
