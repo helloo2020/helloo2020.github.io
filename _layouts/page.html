@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-<header class="page-head">
+<header class="page-head{% if page.plain-head %} page-head--plain{% endif %}">
     <div class="wrap">
         <div class="page-head-row">
             <h1>{{ page.title | default: site.title }}</h1>

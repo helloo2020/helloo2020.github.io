@@ -177,6 +177,10 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--hairline);
   margin-bottom: 2.4rem;
 }
+.page-head--plain {
+  border-bottom: 0;
+  margin-bottom: 1.6rem;
+}
 .page-head h1 {
   margin: 0 0 0.35rem;
   font-size: 2rem;

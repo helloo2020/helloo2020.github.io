@@ -1,17 +1,16 @@
 ---
 layout: page
-title: 关于
+title: 找到我
+plain-head: true
 rss: true
 ---
 
-<h2>订阅</h2>
+<p>微信公众号：<strong>Scond</strong></p>
 
-<p>微信公众号：搜索 <strong>Scond</strong> 关注更新</p>
+<p>我的主页：<a href="https://scond.me" target="_blank" rel="noopener">scond.me</a></p>
 
-<h2>我的主页与站点</h2>
+<p>跑步主页：<a href="https://run.scond.me" target="_blank" rel="noopener">run.scond.me</a></p>
 
-<ul>
-  <li><a href="https://scond.me" target="_blank" rel="noopener">scond.me</a> — 主页</li>
-  <li><a href="https://run.scond.me" target="_blank" rel="noopener">run.scond.me</a> — 跑步</li>
-  <li><a href="https://read.scond.me" target="_blank" rel="noopener">read.scond.me</a> — 阅读</li>
-</ul>
+<p>读书主页：<a href="https://read.scond.me" target="_blank" rel="noopener">read.scond.me</a></p>
+
+<p>友链：{% for friend in site.friends %}<a href="{{ friend.href }}" target="_blank" rel="noopener">{{ friend.title }}</a>{% unless forloop.last %} · {% endunless %}{% endfor %}</p>

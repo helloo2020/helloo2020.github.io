@@ -1,11 +1,5 @@
 <footer class="site-footer">
     <div class="wrap">
-        {% if site.friends %}
-        <p class="footer-friends">
-            <span class="footer-label">友链</span>
-            {% for friend in site.friends %}<a href="{{ friend.href }}" target="_blank" rel="noopener">{{ friend.title }}</a>{% endfor %}
-        </p>
-        {% endif %}
         <p class="footer-copy">Copyright © {{ site.title }}· <span data-blog-visit-count>累计访问加载中</span></p>
     </div>
 </footer>
