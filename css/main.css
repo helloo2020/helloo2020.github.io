@@ -406,6 +406,27 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
   margin: 0 0 1.25rem;
 }
 .prose li { margin: 0.35rem 0; }
+.prose .found-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.6rem 0 0;
+}
+.prose .found-list li {
+  position: relative;
+  margin: 0.55rem 0;
+  padding-left: 1.05rem;
+}
+.prose .found-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  opacity: 0.8;
+}
 .prose hr {
   border: 0;
   border-top: 1px solid var(--hairline);
