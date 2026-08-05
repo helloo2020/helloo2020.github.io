@@ -6,8 +6,27 @@ description: keep hungry keep foolish
 
 <div class="filter-pills" role="group" aria-label="按标签筛选">
     <button type="button" class="pill is-active" data-filter="全部">全部</button>
+    {% assign tags_sorted = "" | split: "" %}
     {% for tag in site.tags %}
-    <button type="button" class="pill" data-filter="{{ tag[0] }}">{{ tag[0] }}<span class="pill-count">({{ tag[1].size }})</span></button>
+    {% assign tag_count = tag[1].size %}
+    {% if tag_count < 10 %}{% assign tag_count = tag_count | prepend: "0" %}{% endif %}
+    {% assign tag_entry = tag_count | append: "|||" | append: tag[0] %}
+    {% assign tags_sorted = tags_sorted | push: tag_entry %}
+    {% endfor %}
+    {% assign tags_sorted = tags_sorted | sort_natural | reverse %}
+    {% for entry in tags_sorted %}
+    {% assign parts = entry | split: "|||" %}
+    {% assign tag_name = parts[1] %}
+    {% if tag_name == "随笔" %}
+    <button type="button" class="pill" data-filter="{{ tag_name }}">{{ tag_name }}<span class="pill-count">({{ parts[0] | plus: 0 }})</span></button>
+    {% endif %}
+    {% endfor %}
+    {% for entry in tags_sorted %}
+    {% assign parts = entry | split: "|||" %}
+    {% assign tag_name = parts[1] %}
+    {% if tag_name != "随笔" %}
+    <button type="button" class="pill" data-filter="{{ tag_name }}">{{ tag_name }}<span class="pill-count">({{ parts[0] | plus: 0 }})</span></button>
+    {% endif %}
     {% endfor %}
 </div>
 
