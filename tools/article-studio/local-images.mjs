@@ -53,7 +53,7 @@ export async function resolveImages(markdown, directory = DEFAULT_IMAGES, allowe
     if (stat.size > 5 * 1024 * 1024) { missing.push({ ref, reason: '超过单张 5 MB 上限' }); continue; }
     const id = pathIds.get(found) || randomUUID();
     pathIds.set(found, id); granted.set(id, { path: found, root, type });
-    assets.push({ ref, id, type, size: stat.size, url: `/api/local-image?id=${id}` });
+    assets.push({ ref, id, type, size: stat.size, url: `/api/local-image?id=${id}`, relativePath: path.relative(root, found).split(path.sep).join('/') });
   }
   return { assets, missing };
 }

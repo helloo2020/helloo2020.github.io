@@ -3,8 +3,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
+import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
 import { formatBlogSource } from './public/blog-source.js';
+import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
+import { listStudioPosts, readStudioPost } from './saved-posts.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const blog = path.resolve(here, '../..');
@@ -167,6 +169,11 @@ http.createServer(async (req, res) => {
   try {
     if (!sameOrigin(req)) return json(res, 403, { error: '只接受本地页面请求' });
     if (req.url === '/api/config' && req.method === 'GET') return json(res, 200, { imageDirectory: DEFAULT_IMAGES });
+    if (req.url === '/api/source-folders' && req.method === 'GET') return json(res, 200, { root: OBSIDIAN_ROOT, folders: await listSourceFolders() });
+    if (req.url?.startsWith('/api/source-location?') && req.method === 'GET') return json(res, 200, await locateSourceFolder(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename')));
+    if (req.url === '/api/save-source' && req.method === 'POST') return json(res, 200, await saveSourceDraft(await requestBody(req), { root: OBSIDIAN_ROOT, blogImages: path.join(blog, 'img') }));
+    if (req.url === '/api/studio-posts' && req.method === 'GET') return json(res, 200, { posts: await listStudioPosts(posts) });
+    if (req.url?.startsWith('/api/studio-post?') && req.method === 'GET') return json(res, 200, await readStudioPost(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename'), posts));
     if (req.url === '/api/resolve-images' && req.method === 'POST') {
       const data = await requestBody(req);
       return json(res, 200, await resolveImages(data.markdown, data.directory));
@@ -181,6 +188,15 @@ http.createServer(async (req, res) => {
     if (req.url === '/api/publish' && req.method === 'POST') return json(res, 200, await publishPost((await requestBody(req)).filename));
     if (req.url?.startsWith('/api/')) return json(res, 404, { error: '接口不存在' });
     if (req.method !== 'GET') return json(res, 405, { error: '方法不支持' });
+    if (req.url?.startsWith('/img/')) {
+      const imagesRoot = await fs.realpath(path.join(blog, 'img'));
+      const name = decodeURIComponent(req.url.split('?')[0].slice(5));
+      const file = await fs.realpath(path.resolve(imagesRoot, name)).catch(() => null);
+      const type = new Map([['.png','image/png'],['.jpg','image/jpeg'],['.jpeg','image/jpeg'],['.webp','image/webp'],['.gif','image/gif']]).get(path.extname(name).toLowerCase());
+      if (!file || !file.startsWith(imagesRoot + path.sep) || !type || !(await fs.stat(file)).isFile()) return json(res, 404, { error: '图片不存在' });
+      res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      return res.end(await fs.readFile(file));
+    }
     const root = path.join(here, 'public');
     const pathname = decodeURIComponent((req.url || '/').split('?')[0]);
     const requested = path.resolve(root, `.${pathname}`);

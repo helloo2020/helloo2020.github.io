@@ -12,8 +12,9 @@ const themes = [
   ['warm', '温暖阅读', '暖色调 · 舒适护眼', '#fbefdf', '#b27641'],
   ['minimal', '极简留白', '大字距 · 专注阅读', '#f1f3f1', '#414a43']
 ];
-const state = { theme: 'sage', assets: new Map(), qr: null, saved: null, dirty: false, localAssets: new Map(), objectUrls: new WeakMap(), imageRequest: 0 };
+const state = { theme: 'sage', assets: new Map(), qr: null, saved: null, dirty: false, localAssets: new Map(), objectUrls: new WeakMap(), imageRequest: 0, importedFilename: '', importedFrontmatter: '', importedHeading: false, sourceFilenameEdited: false };
 let associationTimer;
+let foldersReady;
 const example = `有时候我会想，生活的意义是什么？\n\n可能不是轰轰烈烈的成就，而是那些细碎但真实的瞬间：一杯好喝的咖啡、一本翻到一半的书、傍晚吹来的风，以及忙碌之余还能保有的那一点热爱。\n\n## 热爱的力量\n\n热爱不是遥不可及的梦想，而是让平凡的日子也闪闪发光的小小火种。它可能很微小，但足以支撑我们走过许多睡前的时刻。\n\n> 生活或许不会一直温柔，但热爱可以让我们在风雨中，依然看见光。\n\n## 在日常中发现惊喜\n\n1. 保持好奇，尝试新事物\n2. 认真对待每一次小小的体验\n3. 记录生活中的美好瞬间\n4. 与喜欢的人分享\n\n愿我们都能在平凡的日子里，保持一点热爱，并在热爱中，成为更好的自己。`;
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function toast(message, error = false) { const el = $('toast'); el.textContent = message; el.classList.toggle('error', error); el.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => el.hidden = true, 4500); }
@@ -104,6 +105,8 @@ function parseFrontmatter(text, filename) {
   let body = text.replace(/^\uFEFF/, '');
   let meta = {};
   const match = body.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+  state.importedFilename = filename;
+  state.importedFrontmatter = match?.[0] || '';
   if (match) {
     body = body.slice(match[0].length);
     for (const line of match[1].split(/\r?\n/)) {
@@ -112,6 +115,7 @@ function parseFrontmatter(text, filename) {
     }
   }
   const heading = body.match(/^#\s+(.+)\r?\n/);
+  state.importedHeading = Boolean(heading);
   $('title').value = meta.title || (heading ? heading[1] : filename.replace(/\.md$/i, ''));
   if (heading) body = body.slice(heading[0].length);
   const extracted = extractBlogSource(body.trim());
@@ -122,7 +126,47 @@ function parseFrontmatter(text, filename) {
   $('blog-source').open = Boolean(extracted.source);
   if (['14','16','18','20','22'].includes(meta.article_font_size)) $('font-size').value = meta.article_font_size;
   if (meta.date && /^\d{4}-\d{2}-\d{2}$/.test(meta.date)) $('date').value = meta.date;
+  $('source-filename').value = suggestedSourceFilename(filename.replace(/\.(?:md|markdown)$/i, ''));
+  state.sourceFilenameEdited = false;
+  locateImportedFolder(filename);
   markDirty(); render();
+}
+function suggestedSourceFilename(base) {
+  return `${String(base || $('title').value || '新文章').trim().replace(/[\\/:*?"<>|]/g, '-').slice(0, 90)}-排版版.md`;
+}
+async function getApi(route) {
+  const response = await fetch(`/api/${route}`);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || '读取失败');
+  return result;
+}
+async function loadSourceFolders() {
+  const result = await getApi('source-folders');
+  $('source-folder').replaceChildren(...result.folders.map(folder => {
+    const option = document.createElement('option');
+    option.value = folder;
+    option.textContent = folder === '.' ? 'Blog 根目录' : `Blog/${folder}`;
+    return option;
+  }));
+  return result;
+}
+async function locateImportedFolder(filename) {
+  try {
+    if (!await foldersReady) return;
+    const result = await getApi(`source-location?filename=${encodeURIComponent(filename)}`);
+    if (filename !== state.importedFilename) return;
+    $('source-folder').value = result.folder;
+    $('source-location-note').textContent = result.matches.length === 1 ? `已找到原稿文件夹：${result.folder === '.' ? 'Blog 根目录' : `Blog/${result.folder}`}。将创建新文件，不覆盖原稿。` : result.matches.length > 1 ? '找到多个同名原稿，请手动选择保存文件夹；新文件不会覆盖原稿。' : '未找到同名原稿，默认保存到 Blog 根目录；可改选文件夹。';
+  } catch (error) { $('source-location-note').textContent = `无法自动定位原稿：${error.message}`; }
+}
+function sourceMarkdown() {
+  const title = $('title').value.trim();
+  const body = $('markdown').value.trim();
+  if (!title || !body) throw new Error('请先填写标题和正文');
+  let frontmatter = state.importedFrontmatter;
+  if (frontmatter && /^title:\s*.*$/m.test(frontmatter)) frontmatter = frontmatter.replace(/^title:\s*.*$/m, `title: ${JSON.stringify(title)}`);
+  const heading = state.importedHeading || !frontmatter || !/^title:\s*.*$/m.test(frontmatter) ? `# ${title}\n\n` : '';
+  return `${frontmatter}${heading}${body}\n`;
 }
 async function filesToPayload() {
   const entries = localRefs().map(ref => [ref, state.assets.get(ref) || state.assets.get(ref.split('/').pop())]).filter(([,file]) => file);
@@ -145,7 +189,50 @@ async function save() {
     state.saved = result; $('publish').disabled = false;
     $('status').textContent = `已保存：${result.filename}`;
     toast('文章已保存到本地博客仓库');
+    $('saved-posts').open = true;
+    refreshSavedPosts();
   } catch (e) { toast(e.message, true); } finally { $('save').disabled = false; }
+}
+async function saveSource() {
+  $('save-md').disabled = true;
+  try {
+    if (!await foldersReady) throw new Error('请先检查 Obsidian Blog 文件夹');
+    await resolveLocalImages();
+    const result = await api('save-source', { folder: $('source-folder').value, filename: $('source-filename').value || suggestedSourceFilename(state.importedFilename.replace(/\.(?:md|markdown)$/i, '')), markdown: sourceMarkdown(), assets: await filesToPayload() });
+    $('source-save').open = true;
+    $('source-location-note').textContent = `已另存：${result.path}。原稿未被覆盖。`;
+    toast(`已另存为 ${result.filename}${result.images ? `，新增 ${result.images} 张图片` : ''}`);
+  } catch (error) { toast(`另存失败：${error.message}`, true); }
+  finally { $('save-md').disabled = false; }
+}
+async function refreshSavedPosts() {
+  try {
+    const { posts } = await getApi('studio-posts');
+    $('saved-count').textContent = `(${posts.length})`;
+    $('saved-post-list').replaceChildren(...posts.map(post => {
+      const row = document.createElement('div'); row.className = 'saved-post-row'; row.setAttribute('role', 'listitem');
+      const name = document.createElement('span'); name.textContent = post.title;
+      const date = document.createElement('small'); date.textContent = `${post.date} · 仓库文件`;
+      name.append(date);
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = '预览';
+      button.addEventListener('click', () => showSavedPreview(post.filename));
+      row.append(name, button);
+      return row;
+    }));
+    if (!posts.length) $('saved-post-list').textContent = '还没有通过本工具保存的博客文章。';
+  } catch (error) { $('saved-post-list').textContent = `清单读取失败：${error.message}`; }
+}
+async function showSavedPreview(filename) {
+  try {
+    const post = await getApi(`studio-post?filename=${encodeURIComponent(filename)}`);
+    $('saved-heading').textContent = post.title;
+    $('saved-body').innerHTML = sanitize(marked.parse(post.body, { breaks: false, gfm: true }));
+    $('saved-paper').className = `paper theme-${post.style}`;
+    $('saved-paper').style.setProperty('--article-font-size', `${post.fontSize}px`);
+    $('saved-preview-title').textContent = post.title;
+    $('saved-preview-note').textContent = `${post.date} · 本地效果预览，不会执行发布`;
+    $('saved-preview').showModal();
+  } catch (error) { toast(`预览失败：${error.message}`, true); }
 }
 async function publish() {
   if (!state.saved) return;
@@ -225,7 +312,12 @@ async function copySingleImage(index) {
 }
 $('date').value = localDate(); $('title').value = '在平凡的日子里，保持一点热爱'; $('markdown').value = example;
 renderThemes(); render();
+$('source-filename').value = suggestedSourceFilename($('title').value);
+foldersReady = loadSourceFolders().catch(error => { $('source-location-note').textContent = `Obsidian 文件夹读取失败：${error.message}`; return null; });
+refreshSavedPosts();
 for (const id of ['title','date','tags','wechat-name','font-size']) $(id).addEventListener('input', () => { markDirty(); render(); });
+$('title').addEventListener('input', () => { if (!state.importedFilename && !state.sourceFilenameEdited) $('source-filename').value = suggestedSourceFilename($('title').value); });
+$('source-filename').addEventListener('input', () => { state.sourceFilenameEdited = true; });
 for (const id of ['source-account','source-published','source-url']) $(id).addEventListener('input', markDirty);
 $('markdown').addEventListener('input', () => {
   const extracted = extractBlogSource($('markdown').value);
@@ -243,7 +335,10 @@ $('footer').addEventListener('change', () => { markDirty(); render(); });
 $('md-file').addEventListener('change', async e => { const file = e.target.files[0]; if (file) { state.assets.clear(); state.localAssets.clear(); parseFrontmatter(await file.text(), file.name); await resolveLocalImages(); toast(`已导入 ${file.name}`); } });
 $('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); resolveLocalImages(); });
 $('qr').addEventListener('change', e => { state.qr = e.target.files[0] || null; markDirty(); render(); });
-$('save').addEventListener('click', save); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
+$('save').addEventListener('click', save); $('save-md').addEventListener('click', saveSource); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
+$('refresh-posts').addEventListener('click', refreshSavedPosts);
+$('saved-posts').addEventListener('toggle', () => { if ($('saved-posts').open) refreshSavedPosts(); });
+$('close-saved-preview').addEventListener('click', () => $('saved-preview').close());
 $('desktop-view').addEventListener('click', () => { $('paper').classList.remove('mobile'); $('desktop-view').classList.add('active'); $('mobile-view').classList.remove('active'); });
 $('mobile-view').addEventListener('click', () => { $('paper').classList.add('mobile'); $('mobile-view').classList.add('active'); $('desktop-view').classList.remove('active'); });
 

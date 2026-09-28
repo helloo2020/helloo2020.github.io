@@ -11,6 +11,7 @@
     <div class="brand"><span class="brand-mark">✦</span><strong>文章排版工作台</strong><span class="tagline">把写好的文字，变成好读的文章</span></div>
     <div class="top-actions">
       <label class="button quiet" for="md-file">导入 Markdown</label><input id="md-file" type="file" accept=".md,.markdown,text/markdown" hidden>
+      <button id="save-md" class="button" type="button">另存为 Obsidian MD</button>
       <button id="save" class="button">保存到博客仓库</button>
       <button id="publish" class="button" disabled title="先保存到博客仓库">发布到线上博客</button>
       <button id="copy" class="button primary">复制到公众号</button>
@@ -73,6 +74,18 @@
         <label class="field-label" for="source-published">公众号发布时间（可选）</label><input id="source-published" type="datetime-local">
         <label class="field-label" for="source-url">公众号原文链接</label><input id="source-url" type="url" placeholder="https://mp.weixin.qq.com/s/…">
       </details>
+      <details id="source-save" class="source-save">
+        <summary>Obsidian 另存位置</summary>
+        <p id="source-location-note">将创建新的 Markdown 文件，原稿不会被覆盖。</p>
+        <label class="field-label" for="source-folder">保存文件夹</label><select id="source-folder"><option value=".">Blog 根目录</option></select>
+        <label class="field-label" for="source-filename">新文件名</label><input id="source-filename" placeholder="文章标题-排版版.md">
+      </details>
+      <details id="saved-posts" class="saved-posts">
+        <summary>已保存到博客仓库 <span id="saved-count"></span></summary>
+        <p>仅显示通过本工具保存的文章；预览在本机打开，不会发布。</p>
+        <button id="refresh-posts" type="button">刷新清单</button>
+        <div id="saved-post-list" role="list"></div>
+      </details>
       <p class="settings-note">保存会在本地博客仓库生成文章。点击“发布到线上博客”才会提交并推送到 GitHub。</p>
     </aside>
     <section class="preview-pane" aria-labelledby="preview-title">
@@ -81,7 +94,11 @@
       <div class="preview-foot"><span id="status">仅在本机编辑</span><span>公众号效果以粘贴后预览为准</span></div>
     </section>
   </main>
+  <dialog id="saved-preview" class="saved-preview" aria-labelledby="saved-preview-title">
+    <div class="saved-preview-head"><div><h2 id="saved-preview-title">博客文章预览</h2><small id="saved-preview-note">本地预览 · 不会执行发布</small></div><button id="close-saved-preview" type="button">关闭</button></div>
+    <div class="saved-preview-scroll"><article id="saved-paper" class="paper theme-sage"><h1 id="saved-heading"></h1><div id="saved-body" class="article-body"></div></article></div>
+  </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="/app.js?v=20260928-blog-source"></script>
+  <script type="module" src="/app.js?v=20260928-drafts"></script>
 </body>
 </html>
