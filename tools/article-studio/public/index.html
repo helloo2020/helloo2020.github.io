@@ -41,6 +41,11 @@
         <div class="image-actions"><button type="button" id="resolve-images">重新关联图片</button><label class="text-action" for="image-folder">选择图片文件夹…</label><input id="image-folder" type="file" webkitdirectory multiple hidden></div>
         <p id="image-details">自动读取文章引用的图片，也可以选择文件夹进行匹配。</p>
       </details>
+      <section id="wechat-images" class="wechat-images" hidden aria-label="公众号配图">
+        <strong>公众号配图备用</strong>
+        <p>若公众号粘贴后缺图，按文章顺序复制图片，再到对应位置粘贴。</p>
+        <div id="wechat-image-list"></div>
+      </section>
     </section>
     <aside class="settings-pane" aria-labelledby="styles-title">
       <div class="pane-head"><h2 id="styles-title">排版方案</h2><span>六种阅读气质</span></div>
@@ -70,6 +75,6 @@
     </section>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="/app.js?v=20260928-align"></script>
+  <script type="module" src="/app.js?v=20260928-images"></script>
 </body>
 </html>

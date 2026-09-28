@@ -75,6 +75,28 @@ function render() {
   $('word-count').textContent = `${md.replace(/\s/g,'').length} 字`;
   const linkedCount = localRefs().filter(ref => state.assets.has(ref) || state.assets.has(ref.split('/').pop()) || state.localAssets.has(ref)).length;
   $('asset-count').textContent = linkedCount ? `${linkedCount} 张已关联图片` : '未添加图片';
+  renderImageCopies();
+}
+function localPreviewImages() {
+  const images = [...$('preview-body').querySelectorAll('img'), ...($('footer').checked ? $('preview-footer').querySelectorAll('img') : [])];
+  return images.filter(img => img.src.startsWith('blob:') || img.src.startsWith(`${location.origin}/api/local-image`));
+}
+function renderImageCopies() {
+  const images = localPreviewImages();
+  $('wechat-images').hidden = !images.length;
+  $('wechat-image-list').replaceChildren(...images.map((img, index) => {
+    const row = document.createElement('div');
+    row.className = 'wechat-image-row';
+    const thumb = document.createElement('img');
+    thumb.src = img.src; thumb.alt = '';
+    const label = document.createElement('span');
+    label.textContent = `配图 ${index + 1} · ${img.alt || '未命名图片'}`;
+    const button = document.createElement('button');
+    button.type = 'button'; button.textContent = '复制图片';
+    button.addEventListener('click', () => copySingleImage(index));
+    row.append(thumb, label, button);
+    return row;
+  }));
 }
 function markDirty() { if (state.saved) { state.saved = null; $('publish').disabled = true; $('status').textContent = '内容已修改，请重新保存'; } }
 function parseFrontmatter(text, filename) {
@@ -126,7 +148,13 @@ async function publish() {
   try { const result = await api('publish', { filename: state.saved.filename }); $('status').textContent = '已推送到线上博客'; toast(result.message); }
   catch (e) { $('publish').disabled = false; toast(e.message, true); }
 }
-function inlineCopyHtml() {
+async function inlineCopyHtml() {
+  const missing = localRefs().filter(ref => !state.assets.has(ref) && !state.assets.has(ref.split('/').pop()) && !state.localAssets.has(ref));
+  if (missing.length) {
+    await resolveLocalImages();
+    const unresolved = missing.filter(ref => !state.assets.has(ref) && !state.assets.has(ref.split('/').pop()) && !state.localAssets.has(ref));
+    if (unresolved.length) throw new Error(`有 ${unresolved.length} 张图片未关联：${unresolved.slice(0, 2).join('、')}`);
+  }
   const clone = $('paper').cloneNode(true);
   clone.removeAttribute('id'); clone.className = '';
   const sourceNodes = [$('paper'), ...$('paper').querySelectorAll('*')];
@@ -134,29 +162,60 @@ function inlineCopyHtml() {
   sourceNodes.forEach((source, i) => {
     const target = targetNodes[i]; if (!target) return;
     const computed = getComputedStyle(source);
-    const props = ['color','background-color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','margin-top','margin-bottom','padding-top','padding-right','padding-bottom','padding-left','border-left','border-top','border-bottom','border-radius','max-width','width','height','display','text-decoration'];
+    const props = ['color','background-color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','margin-top','margin-bottom','padding-top','padding-right','padding-bottom','padding-left','border-left','border-top','border-bottom','border-radius','max-width','display','text-decoration'];
     target.setAttribute('style', props.map(p => `${p}:${p === 'text-align' ? wechatTextAlign(computed.getPropertyValue(p), computed.direction) : computed.getPropertyValue(p)}`).join(';'));
     target.removeAttribute('class'); target.removeAttribute('hidden'); target.removeAttribute('id');
   });
-  clone.querySelectorAll('img').forEach(img => { if (img.src.startsWith('blob:') || img.src.startsWith(`${location.origin}/api/local-image`)) img.replaceWith(document.createTextNode(`[图片：${img.alt || '请在公众号后台上传'}]`)); });
   if (!$('footer').checked) clone.querySelector('.article-footer')?.remove();
+  await Promise.all([...clone.querySelectorAll('img')].map(async img => {
+    if (!img.src.startsWith('blob:') && !img.src.startsWith(`${location.origin}/api/local-image`)) return;
+    const response = await fetch(img.src);
+    if (!response.ok) throw new Error(`无法读取图片：${img.alt || '未命名图片'}`);
+    img.src = await toDataUrl(await response.blob());
+    img.style.maxWidth = '100%'; img.style.height = 'auto';
+  }));
   return clone.outerHTML;
 }
 async function copy() {
   if (!$('markdown').value.trim()) return toast('请先输入正文', true);
-  const html = inlineCopyHtml();
+  $('copy').disabled = true;
+  $('copy').textContent = '正在准备图片…';
   const plain = `${$('title').value}\n\n${$('markdown').value}`;
   try {
-    await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], {type:'text/html'}), 'text/plain': new Blob([plain], {type:'text/plain'}) })]);
-    toast('已复制富文本，可粘贴到公众号后台；请检查图片和版式');
-  } catch (e) { toast('浏览器未允许富文本复制，请使用本地地址打开并允许剪贴板权限', true); }
+    const html = inlineCopyHtml().then(value => new Blob([value], {type:'text/html'}));
+    await navigator.clipboard.write([new ClipboardItem({ 'text/html': html, 'text/plain': new Blob([plain], {type:'text/plain'}) })]);
+    toast(`已复制富文本和 ${localPreviewImages().length} 张本地图片；粘贴后请检查图片是否显示`);
+  } catch (e) { toast(`复制失败：${e.message || '请检查剪贴板权限及图片关联'}`, true); }
+  finally { $('copy').disabled = false; $('copy').textContent = '复制到公众号'; }
+}
+async function copySingleImage(index) {
+  const img = localPreviewImages()[index];
+  if (!img) return toast('这张图片已失效，请重新关联', true);
+  try {
+    const png = (async () => {
+      const response = await fetch(img.src);
+      if (!response.ok) throw new Error('读取图片失败');
+      const blob = await response.blob();
+      if (blob.type === 'image/png') return blob;
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width; canvas.height = bitmap.height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const converted = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!converted) throw new Error('图片转换失败');
+      return converted;
+    })();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    toast(`配图 ${index + 1} 已复制，请在公众号对应位置粘贴`);
+  } catch (e) { toast(`图片复制失败：${e.message}`, true); }
 }
 $('date').value = localDate(); $('title').value = '在平凡的日子里，保持一点热爱'; $('markdown').value = example;
 renderThemes(); render();
 for (const id of ['title','markdown','date','tags','wechat-name','font-size']) $(id).addEventListener('input', () => { markDirty(); render(); });
 $('footer').addEventListener('change', () => { markDirty(); render(); });
 $('md-file').addEventListener('change', async e => { const file = e.target.files[0]; if (file) { state.assets.clear(); state.localAssets.clear(); parseFrontmatter(await file.text(), file.name); await resolveLocalImages(); toast(`已导入 ${file.name}`); } });
-$('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); });
+$('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); resolveLocalImages(); });
 $('qr').addEventListener('change', e => { state.qr = e.target.files[0] || null; markDirty(); render(); });
 $('save').addEventListener('click', save); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
 $('desktop-view').addEventListener('click', () => { $('paper').classList.remove('mobile'); $('desktop-view').classList.add('active'); $('mobile-view').classList.remove('active'); });
