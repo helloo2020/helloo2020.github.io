@@ -39,7 +39,7 @@ layout: default
                 <summary>目录</summary>
                 <nav aria-label="文章目录"><ul id="toc-mobile-list"></ul></nav>
             </details>
-            <div class="post-content prose">
+            <div class="post-content prose{% if page.article_style %} article-style-{{ page.article_style | escape }}{% endif %}">
                 {{ content }}
             </div>
 

@@ -747,3 +747,19 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
   html { scroll-behavior: auto; }
   * { transition: none !important; animation: none !important; }
 }
+
+/* Article Studio layouts: scoped to posts made with the local editor. */
+.prose[class*="article-style-"] { --studio-accent: var(--accent); --studio-quote: var(--paper-soft); }
+.prose[class*="article-style-"] h2,
+.prose[class*="article-style-"] h3 { color: var(--studio-accent); }
+.prose[class*="article-style-"] h2 { border-bottom-color: var(--studio-accent); }
+.prose[class*="article-style-"] blockquote { border-left-color: var(--studio-accent); background: var(--studio-quote); padding: .65rem 1.1rem; }
+.prose[class*="article-style-"] li::marker { color: var(--studio-accent); }
+.prose[class*="article-style-"] a { color: var(--studio-accent); }
+.prose.article-style-sage { --studio-accent: #5a795e; --studio-quote: #edf4ed; }
+.prose.article-style-classic { --studio-accent: #896a3d; --studio-quote: #faf5eb; }
+.prose.article-style-modern { --studio-accent: #2d5e72; --studio-quote: #edf4f7; font-family: var(--sans); }
+.prose.article-style-literary { --studio-accent: #735c78; --studio-quote: #f7f0f6; letter-spacing: .025em; }
+.prose.article-style-warm { --studio-accent: #b27641; --studio-quote: #fbf0e1; }
+.prose.article-style-minimal { --studio-accent: #414a43; --studio-quote: #f6f7f6; font-family: var(--sans); letter-spacing: .025em; }
+[data-theme="dark"] .prose[class*="article-style-"] { --studio-accent: var(--link); --studio-quote: var(--paper-soft); }

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文章排版工作台 · Scond</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">✦</span><strong>文章排版工作台</strong><span class="tagline">把写好的文字，变成好读的文章</span></div>
+    <div class="top-actions">
+      <label class="button quiet" for="md-file">导入 Markdown</label><input id="md-file" type="file" accept=".md,.markdown,text/markdown" hidden>
+      <button id="save" class="button">保存到博客仓库</button>
+      <button id="publish" class="button" disabled title="先保存到博客仓库">发布到线上博客</button>
+      <button id="copy" class="button primary">复制到公众号</button>
+    </div>
+  </header>
+  <main class="workspace">
+    <section class="editor-pane" aria-labelledby="source-title">
+      <div class="pane-head"><h2 id="source-title">原稿</h2><span>Markdown / Obsidian</span></div>
+      <label class="field-label" for="title">文章标题</label>
+      <input id="title" class="title-input" placeholder="给文章起个标题" maxlength="150">
+      <div class="editor-toolbar"><span>正文</span><label class="text-action" for="assets">添加本地图片</label><input id="assets" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden></div>
+      <textarea id="markdown" spellcheck="false" placeholder="在这里粘贴文章，或导入 .md 文档。支持标题、引用、列表、链接、代码和图片。"></textarea>
+      <div class="editor-foot"><span id="word-count">0 字</span><span id="asset-count">未添加图片</span></div>
+    </section>
+    <aside class="settings-pane" aria-labelledby="styles-title">
+      <div class="pane-head"><h2 id="styles-title">排版方案</h2><span>六种阅读气质</span></div>
+      <div id="themes" class="themes" role="radiogroup" aria-label="排版方案"></div>
+      <div class="settings-divider"></div>
+      <h3>文章末尾</h3>
+      <label class="toggle-row"><span><strong>添加「关于我」</strong><small>旅行、跑步、看书，也喜欢 AI 和数码</small></span><input id="footer" type="checkbox"><i></i></label>
+      <div id="footer-options" class="footer-options" hidden>
+        <label class="field-label" for="wechat-name">公众号名称</label>
+        <input id="wechat-name" placeholder="例如：Scond 的生活笔记">
+        <label class="field-label" for="qr">公众号二维码（可选）</label>
+        <input id="qr" type="file" accept="image/png,image/jpeg,image/webp">
+        <small>提供二维码后会放在末尾。公众号粘贴后请检查图片。</small>
+      </div>
+      <div class="settings-divider"></div>
+      <h3>博客信息</h3>
+      <label class="field-label" for="date">发布日期</label><input id="date" type="date">
+      <label class="field-label" for="tags">标签</label><input id="tags" placeholder="用逗号分隔，例如：跑步, 随笔">
+      <p class="settings-note">保存会在本地博客仓库生成文章。点击“发布到线上博客”才会提交并推送到 GitHub。</p>
+    </aside>
+    <section class="preview-pane" aria-labelledby="preview-title">
+      <div class="pane-head preview-head"><h2 id="preview-title">预览</h2><div class="view-switch" role="group" aria-label="预览宽度"><button id="desktop-view" class="active">桌面</button><button id="mobile-view">手机</button></div></div>
+      <div class="preview-scroll"><article id="paper" class="paper theme-sage"><h1 id="preview-heading"></h1><div id="preview-body" class="article-body"></div><section id="preview-footer" class="article-footer" hidden></section></article></div>
+      <div class="preview-foot"><span id="status">仅在本机编辑</span><span>公众号效果以粘贴后预览为准</span></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
