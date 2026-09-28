@@ -1,6 +1,7 @@
 import { marked } from './vendor/marked.esm.js';
 import { formatSelection } from './editor-actions.js';
 import { wechatTextAlign } from './wechat-style.js';
+import { extractBlogSource } from './blog-source.js';
 
 const $ = id => document.getElementById(id);
 const themes = [
@@ -113,7 +114,12 @@ function parseFrontmatter(text, filename) {
   const heading = body.match(/^#\s+(.+)\r?\n/);
   $('title').value = meta.title || (heading ? heading[1] : filename.replace(/\.md$/i, ''));
   if (heading) body = body.slice(heading[0].length);
-  $('markdown').value = body.trim();
+  const extracted = extractBlogSource(body.trim());
+  $('markdown').value = extracted.body.trim();
+  $('source-account').value = extracted.source?.account || 'Scond';
+  $('source-published').value = extracted.source?.publishedAt || '';
+  $('source-url').value = extracted.source?.url || '';
+  $('blog-source').open = Boolean(extracted.source);
   if (['14','16','18','20','22'].includes(meta.article_font_size)) $('font-size').value = meta.article_font_size;
   if (meta.date && /^\d{4}-\d{2}-\d{2}$/.test(meta.date)) $('date').value = meta.date;
   markDirty(); render();
@@ -135,7 +141,7 @@ async function save() {
   $('save').disabled = true;
   try {
     await resolveLocalImages();
-    const result = await api('save', { title: $('title').value, markdown: normalizeObsidian($('markdown').value), date: $('date').value, tags: $('tags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean), style: state.theme, fontSize: Number($('font-size').value), localImages: [...state.localAssets.values()].filter(asset => !state.assets.has(asset.ref) && !state.assets.has(asset.ref.split('/').pop())).map(({ref,id}) => ({ref,id})), footer: $('footer').checked, wechatName: $('wechat-name').value, qrImageName: state.qr?.name, assets: await filesToPayload() });
+    const result = await api('save', { title: $('title').value, markdown: normalizeObsidian($('markdown').value), date: $('date').value, tags: $('tags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean), style: state.theme, fontSize: Number($('font-size').value), sourceAccount: $('source-account').value, sourcePublishedAt: $('source-published').value, sourceUrl: $('source-url').value, localImages: [...state.localAssets.values()].filter(asset => !state.assets.has(asset.ref) && !state.assets.has(asset.ref.split('/').pop())).map(({ref,id}) => ({ref,id})), footer: $('footer').checked, wechatName: $('wechat-name').value, qrImageName: state.qr?.name, assets: await filesToPayload() });
     state.saved = result; $('publish').disabled = false;
     $('status').textContent = `已保存：${result.filename}`;
     toast('文章已保存到本地博客仓库');
@@ -219,7 +225,20 @@ async function copySingleImage(index) {
 }
 $('date').value = localDate(); $('title').value = '在平凡的日子里，保持一点热爱'; $('markdown').value = example;
 renderThemes(); render();
-for (const id of ['title','markdown','date','tags','wechat-name','font-size']) $(id).addEventListener('input', () => { markDirty(); render(); });
+for (const id of ['title','date','tags','wechat-name','font-size']) $(id).addEventListener('input', () => { markDirty(); render(); });
+for (const id of ['source-account','source-published','source-url']) $(id).addEventListener('input', markDirty);
+$('markdown').addEventListener('input', () => {
+  const extracted = extractBlogSource($('markdown').value);
+  if (extracted.source) {
+    $('markdown').value = extracted.body;
+    $('source-account').value = extracted.source.account;
+    $('source-published').value = extracted.source.publishedAt;
+    $('source-url').value = extracted.source.url;
+    $('blog-source').open = true;
+    toast('已把公众号来源信息移到「仅博客显示」');
+  }
+  markDirty(); render();
+});
 $('footer').addEventListener('change', () => { markDirty(); render(); });
 $('md-file').addEventListener('change', async e => { const file = e.target.files[0]; if (file) { state.assets.clear(); state.localAssets.clear(); parseFrontmatter(await file.text(), file.name); await resolveLocalImages(); toast(`已导入 ${file.name}`); } });
 $('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); resolveLocalImages(); });

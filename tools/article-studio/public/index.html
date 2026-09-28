@@ -66,6 +66,13 @@
       <h3>博客信息</h3>
       <label class="field-label" for="date">发布日期</label><input id="date" type="date">
       <label class="field-label" for="tags">标签</label><input id="tags" placeholder="用逗号分隔，例如：跑步, 随笔">
+      <details id="blog-source" class="blog-source">
+        <summary>公众号原文信息 <span>仅博客显示</span></summary>
+        <p>先发布公众号，拿到原文链接后再填写；复制到公众号时不会带上这些信息。</p>
+        <label class="field-label" for="source-account">公众号名称</label><input id="source-account" value="Scond" maxlength="60">
+        <label class="field-label" for="source-published">公众号发布时间（可选）</label><input id="source-published" type="datetime-local">
+        <label class="field-label" for="source-url">公众号原文链接</label><input id="source-url" type="url" placeholder="https://mp.weixin.qq.com/s/…">
+      </details>
       <p class="settings-note">保存会在本地博客仓库生成文章。点击“发布到线上博客”才会提交并推送到 GitHub。</p>
     </aside>
     <section class="preview-pane" aria-labelledby="preview-title">
@@ -75,6 +82,6 @@
     </section>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="/app.js?v=20260928-mobile"></script>
+  <script type="module" src="/app.js?v=20260928-blog-source"></script>
 </body>
 </html>

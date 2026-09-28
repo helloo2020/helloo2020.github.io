@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
+import { formatBlogSource } from './public/blog-source.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const blog = path.resolve(here, '../..');
@@ -59,6 +60,18 @@ async function savePost(data) {
   try { await fs.access(filepath); throw new Error('博客中已有同名文章，请修改标题或日期'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   const style = ['sage', 'classic', 'modern', 'literary', 'warm', 'minimal'].includes(data.style) ? data.style : 'sage';
   const tags = Array.isArray(data.tags) ? data.tags.map(x => String(x).trim()).filter(Boolean).slice(0, 8) : [];
+  const sourceUrl = String(data.sourceUrl || '').trim();
+  const sourceAccount = String(data.sourceAccount || 'Scond').trim();
+  const sourcePublishedAt = String(data.sourcePublishedAt || '').trim();
+  let sourceHref = '';
+  if (sourceUrl) {
+    let link;
+    try { link = new URL(sourceUrl); } catch { throw new Error('公众号原文链接格式不正确'); }
+    if (link.protocol !== 'https:' || link.hostname !== 'mp.weixin.qq.com' || !/^\/s(?:\/|$)/.test(link.pathname) || /[\s()[\]]/.test(sourceUrl)) throw new Error('请填写有效的公众号原文链接');
+    if (!sourceAccount || sourceAccount.length > 60 || /[\r\n|｜]/.test(sourceAccount)) throw new Error('公众号名称格式不正确');
+    if (sourcePublishedAt && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(sourcePublishedAt) || Number.isNaN(Date.parse(sourcePublishedAt)))) throw new Error('公众号发布时间格式不正确');
+    sourceHref = link.href;
+  }
   const imageMap = new Map();
   const fontSize = [14,16,18,20,22].includes(Number(data.fontSize)) ? Number(data.fontSize) : 16;
   const bodyRefs = imageReferences(body);
@@ -86,6 +99,7 @@ async function savePost(data) {
   const missingLocal = bodyRefs.filter(ref => !/^https?:\/\//i.test(ref) && !ref.startsWith('/img/') && !imageMap.has(ref.replace(/^\.\//, '')) && !imageMap.has(path.basename(ref)));
   if (missingLocal.length) throw new Error(`这些本地图片尚未添加：${missingLocal.slice(0, 3).join('、')}`);
   const normalized = normalizeImageLinks(body, imageMap);
+  const source = formatBlogSource({ account: sourceAccount, publishedAt: sourcePublishedAt, url: sourceHref });
   const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : null;
   const footer = data.footer ? `\n\n---\n\n**关于我**  \n旅行、跑步、看书，也喜欢 AI 和数码  \n🌍 30+ 国家 · 🏅 半马 1h36 ｜ 全马 3h58  \n[主页 scond.me](https://scond.me)\n${data.wechatName ? `\n欢迎关注：${String(data.wechatName).trim().slice(0, 60)}\n` : ''}${qrPath ? `\n![公众号二维码](${qrPath})\n` : ''}` : '';
   const frontmatter = [
@@ -96,7 +110,7 @@ async function savePost(data) {
   if (assetPaths.length) await fs.mkdir(assetDir, { recursive: true });
   try {
     for (const asset of assetPaths) await fs.writeFile(asset.file, asset.bytes, { flag: 'wx' });
-    await fs.writeFile(filepath, `${frontmatter}${normalized}${footer}\n`, { flag: 'wx' });
+    await fs.writeFile(filepath, `${frontmatter}${source ? `${source}\n\n` : ''}${normalized}${footer}\n`, { flag: 'wx' });
   } catch (e) {
     await Promise.all(assetPaths.map(x => fs.rm(x.file, { force: true })));
     throw e;
