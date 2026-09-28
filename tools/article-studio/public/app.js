@@ -1,5 +1,6 @@
 import { marked } from './vendor/marked.esm.js';
 import { formatSelection } from './editor-actions.js';
+import { wechatTextAlign } from './wechat-style.js';
 
 const $ = id => document.getElementById(id);
 const themes = [
@@ -134,7 +135,7 @@ function inlineCopyHtml() {
     const target = targetNodes[i]; if (!target) return;
     const computed = getComputedStyle(source);
     const props = ['color','background-color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','margin-top','margin-bottom','padding-top','padding-right','padding-bottom','padding-left','border-left','border-top','border-bottom','border-radius','max-width','width','height','display','text-decoration'];
-    target.setAttribute('style', props.map(p => `${p}:${computed.getPropertyValue(p)}`).join(';'));
+    target.setAttribute('style', props.map(p => `${p}:${p === 'text-align' ? wechatTextAlign(computed.getPropertyValue(p), computed.direction) : computed.getPropertyValue(p)}`).join(';'));
     target.removeAttribute('class'); target.removeAttribute('hidden'); target.removeAttribute('id');
   });
   clone.querySelectorAll('img').forEach(img => { if (img.src.startsWith('blob:') || img.src.startsWith(`${location.origin}/api/local-image`)) img.replaceWith(document.createTextNode(`[图片：${img.alt || '请在公众号后台上传'}]`)); });

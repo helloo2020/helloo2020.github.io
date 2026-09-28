@@ -172,7 +172,7 @@ http.createServer(async (req, res) => {
     const requested = path.resolve(root, `.${pathname}`);
     const file = requested.startsWith(root + path.sep) && (await fs.stat(requested).catch(() => null))?.isFile() ? requested : path.join(root, 'index.html');
     const bytes = await fs.readFile(file);
-    res.writeHead(200, { 'content-type': `${mime[path.extname(file)] || 'application/octet-stream'}; charset=utf-8` });
+    res.writeHead(200, { 'content-type': `${mime[path.extname(file)] || 'application/octet-stream'}; charset=utf-8`, 'cache-control': 'no-store' });
     res.end(bytes);
   } catch (e) { json(res, 400, { error: e.message || '操作失败' }); }
 }).on('error', error => {
