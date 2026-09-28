@@ -7,7 +7,8 @@ import { spawn } from 'node:child_process';
 import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
 import { formatBlogSource } from './public/blog-source.js';
 import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
-import { listStudioPosts, readStudioPost, deleteStudioPost } from './saved-posts.mjs';
+import { deleteStudioPost, readStudioPost } from './saved-posts.mjs';
+import { listManagedPosts, readManagedPost, restoreManagedPost, publishManagedPost, unpublishManagedPost } from './post-publishing.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const blog = path.resolve(here, '../..');
@@ -16,6 +17,8 @@ const host = '127.0.0.1';
 const port = Number(process.env.ARTICLE_STUDIO_PORT || 4174);
 const MAX_BODY = 16 * 1024 * 1024;
 const allowedExt = new Map([['image/png', '.png'], ['image/jpeg', '.jpg'], ['image/webp', '.webp'], ['image/gif', '.gif']]);
+const expectedRemote = /^(?:https:\/\/github\.com\/|git@github\.com:)helloo2020\/helloo2020\.github\.io(?:\.git)?$/;
+const publishing = { repo: blog, postsDir: posts, expectedRemote, preflight: buildJekyll };
 
 function json(res, status, payload) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -29,13 +32,17 @@ function requestBody(req) {
     req.on('error', reject);
   });
 }
-function runGit(args) {
-  return new Promise((resolve, reject) => {
-    const p = spawn('git', args, { cwd: blog, stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '', err = '';
-    p.stdout.on('data', x => out += x);
-    p.stderr.on('data', x => err += x);
-    p.on('close', code => code === 0 ? resolve(out.trim()) : reject(new Error(err.trim() || `Git 命令失败 (${code})`)));
+async function buildJekyll() {
+  const vendor = path.join(blog, '.jekyll-vendor');
+  const executable = path.join(vendor, 'bin', 'jekyll');
+  if (!(await fs.stat(executable).catch(() => null))?.isFile()) throw new Error('找不到本机 Jekyll 构建工具，发布前请检查博客环境');
+  await new Promise((resolve, reject) => {
+    const child = spawn(executable, ['build', '--quiet'], { cwd: blog, env: { ...process.env, GEM_HOME: vendor, GEM_PATH: vendor }, stdio: ['ignore', 'ignore', 'pipe'] });
+    let err = '';
+    const timer = setTimeout(() => child.kill(), 120000);
+    child.stderr.on('data', part => err += part);
+    child.on('error', reject);
+    child.on('close', code => { clearTimeout(timer); code === 0 ? resolve() : reject(new Error(`博客构建失败：${err.trim() || `退出码 ${code}`}`)); });
   });
 }
 function slugify(s) {
@@ -131,47 +138,6 @@ async function savePost(data) {
   }
   return { filename, revision: (await readStudioPost(filename, posts)).revision, markdown: normalized, qrPath: data.footer ? qrPath : '', assets: assetPaths.map(x => path.relative(blog, x.file)), previewUrl: `https://blog.scond.me/${filename.slice(0, 10).replace(/-/g, '/')}/${encodeURIComponent(filename.slice(11, -3))}/` };
 }
-async function publishPost(filename, expectedRevision) {
-  if (typeof filename !== 'string' || path.basename(filename) !== filename || !/^\d{4}-\d{2}-\d{2}-.+\.md$/.test(filename)) throw new Error('文章文件名无效');
-  const rel = `_posts/${filename}`;
-  const post = await readStudioPost(filename, posts);
-  if (post.revision !== expectedRevision) throw new Error('文章在保存后又发生变化，请重新载入并检查');
-  const branch = await runGit(['branch', '--show-current']);
-  if (branch !== 'master') throw new Error('请在博客 master 分支发布');
-  const remote = await runGit(['remote', 'get-url', 'origin']);
-  if (!/github\.com[:/]helloo2020\/helloo2020\.github\.io(?:\.git)?$/.test(remote)) throw new Error('博客远端地址与预期不符，已停止发布');
-  await runGit(['fetch', 'origin', 'master']);
-  const ahead = Number(await runGit(['rev-list', '--count', 'origin/master..HEAD']));
-  const behind = Number(await runGit(['rev-list', '--count', 'HEAD..origin/master']));
-  if (behind) throw new Error('远端有新的提交，请先同步博客仓库再发布');
-  const assetDir = `img/article-studio/${filename.slice(0, -3)}`;
-  const postSubject = `post: ${filename.slice(11, -3)}`;
-  let hasPendingPostCommit = false;
-  if (ahead) {
-    const commits = (await runGit(['log', '--format=%H%x09%s', 'origin/master..HEAD'])).split('\n').filter(Boolean).map(line => { const [sha, ...subject] = line.split('\t'); return { sha, subject: subject.join('\t') }; });
-    const allowedSetupFile = file => ['.gitignore', 'AGENTS.md', 'README.md', '打开文章排版工具.command', '_config.yml', '_includes/head.html', '_layouts/post.html', 'css/main.css'].includes(file) || file.startsWith('tools/article-studio/') || file.startsWith('.ai/');
-    hasPendingPostCommit = commits[0]?.subject === postSubject;
-    for (const commit of commits) {
-      const files = (await runGit(['-c', 'core.quotePath=false', 'diff-tree', '--no-commit-id', '--name-only', '-r', commit.sha])).split('\n').filter(Boolean);
-      const setup = (commit.subject === 'feat: add local article studio' || commit.subject.startsWith('studio: ')) && files.every(allowedSetupFile);
-      const retry = hasPendingPostCommit && commit.subject === postSubject && files.every(file => file === rel || file.startsWith(`${assetDir}/`));
-      if (!setup && !retry) throw new Error('本地已有其他未推送提交，为避免连带发布，请先处理 Git 同步');
-    }
-  }
-  const changed = await runGit(['status', '--porcelain', '--', rel]);
-  if (changed && !changed.startsWith('?? ') && !changed.startsWith(' M ')) throw new Error('这篇文章已有其他 Git 修改，请先检查文件');
-  if (!changed && !hasPendingPostCommit) throw new Error('这篇文章已经发布或由其他方式提交');
-  try {
-    if (changed) {
-      const assets = (await fs.readdir(path.join(blog, assetDir)).catch(() => [])).map(x => `${assetDir}/${x}`);
-      const paths = [rel, ...assets];
-      await runGit(['add', '--', ...paths]);
-      await runGit(['commit', '-m', postSubject, '--only', '--', ...paths]);
-    }
-    await runGit(['push', 'origin', 'master']);
-  } catch (e) { throw new Error(`发布未完成：${e.message}。请检查本地 Git 状态。`); }
-  return { message: '已推送到博客仓库，GitHub Pages 更新需要一点时间。' };
-}
 function sameOrigin(req) {
   const origin = req.headers.origin;
   return !origin || origin === `http://${host}:${port}` || origin === 'http://127.0.0.1:5173';
@@ -184,8 +150,9 @@ http.createServer(async (req, res) => {
     if (req.url === '/api/source-folders' && req.method === 'GET') return json(res, 200, { root: OBSIDIAN_ROOT, folders: await listSourceFolders() });
     if (req.url?.startsWith('/api/source-location?') && req.method === 'GET') return json(res, 200, await locateSourceFolder(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename')));
     if (req.url === '/api/save-source' && req.method === 'POST') return json(res, 200, await saveSourceDraft(await requestBody(req), { root: OBSIDIAN_ROOT, blogImages: path.join(blog, 'img') }));
-    if (req.url === '/api/studio-posts' && req.method === 'GET') return json(res, 200, { posts: await listStudioPosts(posts) });
-    if (req.url?.startsWith('/api/studio-post?') && req.method === 'GET') return json(res, 200, await readStudioPost(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename'), posts));
+    if (req.url?.startsWith('/api/studio-posts') && req.method === 'GET') return json(res, 200, await listManagedPosts({ ...publishing, refresh: new URL(req.url, `http://${host}:${port}`).searchParams.get('refresh') === '1' }));
+    if (req.url?.startsWith('/api/studio-post?') && req.method === 'GET') return json(res, 200, await readManagedPost(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename'), publishing));
+    if (req.url === '/api/restore-studio-post' && req.method === 'POST') return json(res, 200, await restoreManagedPost((await requestBody(req)).filename, publishing));
     if (req.url === '/api/delete-studio-post' && req.method === 'POST') {
       const data = await requestBody(req);
       return json(res, 200, await deleteStudioPost(data.filename, data.expectedRevision, posts));
@@ -203,7 +170,11 @@ http.createServer(async (req, res) => {
     if (req.url === '/api/save' && req.method === 'POST') return json(res, 200, await savePost(await requestBody(req)));
     if (req.url === '/api/publish' && req.method === 'POST') {
       const data = await requestBody(req);
-      return json(res, 200, await publishPost(data.filename, data.revision));
+      return json(res, 200, await publishManagedPost(data.filename, data.revision, publishing));
+    }
+    if (req.url === '/api/unpublish' && req.method === 'POST') {
+      const data = await requestBody(req);
+      return json(res, 200, await unpublishManagedPost(data.filename, data.remoteRevision, publishing));
     }
     if (req.url?.startsWith('/api/')) return json(res, 404, { error: '接口不存在' });
     if (req.method !== 'GET') return json(res, 405, { error: '方法不支持' });

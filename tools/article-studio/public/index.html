@@ -83,11 +83,12 @@
       </details>
       <details id="saved-posts" class="saved-posts">
         <summary>已保存到博客仓库 <span id="saved-count"></span></summary>
-        <p>仅显示通过本工具保存的本地文章；可预览、编辑或删除。删除不会让已发布的线上文章下线。</p>
-        <button id="refresh-posts" type="button">刷新清单</button>
+        <p>管理本工具保存的文章。发布和更新会推送到 GitHub；“撤下线上”保留本地稿和图片。</p>
+        <button id="refresh-posts" type="button">检查线上状态</button>
+        <p id="saved-posts-note" role="status"></p>
         <div id="saved-post-list" role="list"></div>
       </details>
-      <p class="settings-note">保存会在本地博客仓库生成文章。点击“发布到线上博客”才会提交并推送到 GitHub。</p>
+      <p class="settings-note">保存会在本地博客仓库生成文章。点击顶部“发布到线上博客”或清单中的“发布”，才会提交并推送到 GitHub。</p>
     </aside>
     <section class="preview-pane" aria-labelledby="preview-title">
       <div class="pane-head preview-head"><h2 id="preview-title">预览</h2><div class="view-switch" role="group" aria-label="预览宽度"><button id="desktop-view" class="active">桌面</button><button id="mobile-view">手机</button></div></div>
@@ -100,6 +101,6 @@
     <div class="saved-preview-scroll"><article id="saved-paper" class="paper theme-sage"><h1 id="saved-heading"></h1><div id="saved-body" class="article-body"></div></article></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="/app.js?v=20260928-manage"></script>
+  <script type="module" src="/app.js?v=20260928-publish-manage"></script>
 </body>
 </html>

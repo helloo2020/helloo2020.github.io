@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 
 const revisionOf = content => createHash('sha256').update(content).digest('hex');
 
-function parseStudioPost(content, filename) {
+export function parseStudioPost(content, filename) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   if (!match || !/^article_studio:\s*true\s*$/m.test(match[1])) return null;
   const meta = {};

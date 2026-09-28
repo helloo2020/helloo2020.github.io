@@ -222,20 +222,31 @@ async function saveSource() {
   } catch (error) { toast(`另存失败：${error.message}`, true); }
   finally { $('save-md').disabled = false; }
 }
-async function refreshSavedPosts() {
+async function refreshSavedPosts(checkRemote = false) {
   try {
-    const { posts } = await getApi('studio-posts');
+    if (checkRemote) $('saved-posts-note').textContent = '正在检查 GitHub 仓库状态…';
+    const { posts, remoteError } = await getApi(`studio-posts?refresh=${checkRemote ? '1' : '0'}`);
+    $('saved-posts-note').textContent = remoteError ? `线上状态未核实：${remoteError}` : '状态以 GitHub 仓库为准；网站页面更新可能稍晚。';
     $('saved-count').textContent = `(${posts.length})`;
     $('saved-post-list').replaceChildren(...posts.map(post => {
       const row = document.createElement('div'); row.className = 'saved-post-row'; row.setAttribute('role', 'listitem');
       const name = document.createElement('span'); name.textContent = post.title;
-      const date = document.createElement('small'); date.textContent = `${post.date} · 仓库文件`;
-      name.append(date);
+      const date = document.createElement('small'); date.textContent = post.date;
+      const badge = document.createElement('em'); badge.className = `post-status status-${post.status}`;
+      badge.textContent = ({ local: '仅本地', synced: '已同步 GitHub', needs_sync: '有待发布修改', remote_only: '线上仍在，本地已删', unverified: '线上状态未核实' })[post.status] || '状态未知';
+      name.append(date, badge);
       const actions = document.createElement('div'); actions.className = 'saved-post-actions';
-      for (const [label, action] of [['预览', () => showSavedPreview(post.filename)], ['编辑', () => editSavedPost(post.filename)], ['删除', () => deleteSavedPost(post)]]) {
+      const choices = [['预览', () => showSavedPreview(post.filename)]];
+      if (post.localExists) choices.push(['编辑', () => editSavedPost(post.filename)]);
+      else choices.push(['恢复本地', () => restoreSavedPost(post)]);
+      if (post.localExists && post.status !== 'synced') choices.push([post.remoteExists ? '更新线上' : '发布', () => publishSavedPost(post)]);
+      if (post.remoteExists) choices.push(['撤下线上', () => unpublishSavedPost(post)]);
+      if (post.remoteExists) choices.push(['打开线上', () => window.open(post.url, '_blank', 'noopener')]);
+      if (post.localExists) choices.push(['删本地', () => deleteSavedPost(post)]);
+      for (const [label, action] of choices) {
         const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
-        if (label === '删除') button.className = 'danger';
-        button.addEventListener('click', action);
+        if (label === '撤下线上' || label === '删本地') button.className = 'danger';
+        button.addEventListener('click', async () => { button.disabled = true; try { await action(); } finally { button.disabled = false; } });
         actions.append(button);
       }
       row.append(name, actions);
@@ -243,6 +254,31 @@ async function refreshSavedPosts() {
     }));
     if (!posts.length) $('saved-post-list').textContent = '还没有通过本工具保存的博客文章。';
   } catch (error) { $('saved-post-list').textContent = `清单读取失败：${error.message}`; }
+}
+async function publishSavedPost(post) {
+  if (!confirm(`将「${post.title}」提交并推送到 GitHub 博客仓库。若有已检查的本地工具更新，也会一起同步。继续吗？`)) return;
+  try {
+    const result = await api('publish', { filename: post.filename, revision: post.revision });
+    $('status').textContent = `已推送：${post.filename}`;
+    toast(result.message);
+    await refreshSavedPosts(true);
+  } catch (error) { toast(`发布失败：${error.message}`, true); }
+}
+async function unpublishSavedPost(post) {
+  if (!confirm(`确定从线上博客撤下「${post.title}」吗？这会提交并推送删除文章的改动；若有已检查的本地工具更新，也会一起同步。网站更新后将不再显示；本地稿、配图及 Git 历史仍保留。`)) return;
+  try {
+    const result = await api('unpublish', { filename: post.filename, remoteRevision: post.remoteRevision });
+    $('status').textContent = `已从线上撤下：${post.filename}`;
+    toast(result.message);
+    await refreshSavedPosts(true);
+  } catch (error) { toast(`撤下失败：${error.message}`, true); }
+}
+async function restoreSavedPost(post) {
+  try {
+    await api('restore-studio-post', { filename: post.filename });
+    toast('已从 GitHub 仓库恢复到本地，可继续编辑');
+    await refreshSavedPosts(true);
+  } catch (error) { toast(`恢复失败：${error.message}`, true); }
 }
 async function editSavedPost(filename) {
   if (!confirm('载入这篇文章会替换当前编辑区的内容。继续吗？')) return;
@@ -284,13 +320,13 @@ async function editSavedPost(filename) {
   } catch (error) { toast(`载入失败：${error.message}`, true); }
 }
 async function deleteSavedPost(post) {
-  if (!confirm(`确定从本地博客仓库删除「${post.title}」吗？此操作不会让已发布的线上文章下线，原有配图文件会保留。`)) return;
+  if (!confirm(`确定删除「${post.title}」的本地 Markdown 文件吗？${post.remoteExists ? '线上文章仍会保留在清单，可再点“撤下线上”或“恢复本地”。' : ''}原有配图文件会保留。`)) return;
   try {
     await api('delete-studio-post', { filename: post.filename, expectedRevision: post.revision });
     if (state.editing?.filename === post.filename) leaveEdit();
     if (state.saved?.filename === post.filename) { state.saved = null; $('publish').disabled = true; }
     $('status').textContent = `已从本地仓库删除：${post.filename}`;
-    toast('本地文章已删除；线上文章如已发布，仍需单独处理');
+    toast(post.remoteExists ? '本地稿已删除；线上文章仍在清单中' : '本地文章已删除');
     await refreshSavedPosts();
   } catch (error) { toast(`删除失败：${error.message}`, true); }
 }
@@ -310,7 +346,7 @@ async function publish() {
   if (!state.saved) return;
   if (!confirm(`即将提交并推送「${$('title').value}」到 GitHub，网站会公开展示这篇文章。若有已检查的本地工具更新，也会一起同步。继续吗？`)) return;
   $('publish').disabled = true;
-  try { const result = await api('publish', { filename: state.saved.filename, revision: state.saved.revision }); $('status').textContent = '已推送到线上博客'; toast(result.message); }
+  try { const result = await api('publish', { filename: state.saved.filename, revision: state.saved.revision }); $('status').textContent = '已推送到线上博客'; toast(result.message); await refreshSavedPosts(true); }
   catch (e) { $('publish').disabled = false; toast(e.message, true); }
 }
 async function inlineCopyHtml() {
@@ -386,7 +422,7 @@ $('date').value = localDate(); $('title').value = '在平凡的日子里，保�
 renderThemes(); render();
 $('source-filename').value = suggestedSourceFilename($('title').value);
 foldersReady = loadSourceFolders().catch(error => { $('source-location-note').textContent = `Obsidian 文件夹读取失败：${error.message}`; return null; });
-refreshSavedPosts();
+refreshSavedPosts(true);
 for (const id of ['title','date','tags','wechat-name','font-size']) $(id).addEventListener('input', () => { markDirty(); render(); });
 $('title').addEventListener('input', () => { if (!state.importedFilename && !state.sourceFilenameEdited) $('source-filename').value = suggestedSourceFilename($('title').value); });
 $('source-filename').addEventListener('input', () => { state.sourceFilenameEdited = true; });
@@ -409,7 +445,7 @@ $('assets').addEventListener('change', e => { for (const file of e.target.files)
 $('qr').addEventListener('change', e => { state.qr = e.target.files[0] || null; markDirty(); render(); });
 $('save').addEventListener('click', save); $('save-md').addEventListener('click', saveSource); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
 $('cancel-edit').addEventListener('click', () => { leaveEdit(); $('status').textContent = '已退出编辑；当前内容可另存为新文章'; render(); });
-$('refresh-posts').addEventListener('click', refreshSavedPosts);
+$('refresh-posts').addEventListener('click', () => refreshSavedPosts(true));
 $('saved-posts').addEventListener('toggle', () => { if ($('saved-posts').open) refreshSavedPosts(); });
 $('close-saved-preview').addEventListener('click', () => $('saved-preview').close());
 $('desktop-view').addEventListener('click', () => { $('paper').classList.remove('mobile'); $('desktop-view').classList.add('active'); $('mobile-view').classList.remove('active'); });
