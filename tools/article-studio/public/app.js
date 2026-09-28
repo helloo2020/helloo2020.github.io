@@ -5,12 +5,12 @@ import { extractBlogSource } from './blog-source.js';
 
 const $ = id => document.getElementById(id);
 const themes = [
-  ['sage', '山与生活', '清爽留白 · 自然舒适', '#edf4ed', '#5a795e'],
-  ['classic', '经典雅致', '经典宋体 · 沉稳耐读', '#f7f0e5', '#896a3d'],
-  ['modern', '现代简约', '无衬线体 · 简洁清晰', '#eaf3f7', '#2d5e72'],
-  ['literary', '书卷墨香', '文艺气息 · 古朴典雅', '#f5edf4', '#735c78'],
-  ['warm', '温暖阅读', '暖色调 · 舒适护眼', '#fbefdf', '#b27641'],
-  ['minimal', '极简留白', '大字距 · 专注阅读', '#f1f3f1', '#414a43']
+  ['sage', '山与生活', '清爽留白', '#edf4ed', '#5a795e'],
+  ['classic', '经典雅致', '宋体沉稳', '#f7f0e5', '#896a3d'],
+  ['modern', '现代简约', '简洁清晰', '#eaf3f7', '#2d5e72'],
+  ['literary', '书卷墨香', '文艺典雅', '#f5edf4', '#735c78'],
+  ['warm', '温暖阅读', '暖色护眼', '#fbefdf', '#b27641'],
+  ['minimal', '极简留白', '专注阅读', '#f1f3f1', '#414a43']
 ];
 const state = { theme: 'sage', assets: new Map(), qr: null, existingQrUrl: '', saved: null, editing: null, dirty: false, localAssets: new Map(), objectUrls: new WeakMap(), imageRequest: 0, importedFilename: '', importedFrontmatter: '', importedHeading: false, sourceFilenameEdited: false };
 let associationTimer;
@@ -51,7 +51,15 @@ function sanitize(html) {
 }
 function renderThemes() {
   $('themes').innerHTML = themes.map(([id,name,description,bg,color]) => `<button class="theme-choice ${id === state.theme ? 'selected' : ''}" type="button" role="radio" aria-checked="${id === state.theme}" data-theme="${id}"><span class="theme-swatch" style="background:${bg};color:${color}">文</span><span class="theme-copy"><strong>${name}</strong><small>${description}</small></span><span class="check">✓</span></button>`).join('');
-  $('themes').querySelectorAll('button').forEach(button => button.addEventListener('click', () => { state.theme = button.dataset.theme; renderThemes(); render(); markDirty(); }));
+  $('themes').querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
+    state.theme = button.dataset.theme;
+    $('themes').querySelectorAll('button').forEach(choice => {
+      const selected = choice === button;
+      choice.classList.toggle('selected', selected);
+      choice.setAttribute('aria-checked', String(selected));
+    });
+    render(); markDirty();
+  }));
 }
 function footerHtml() {
   const account = $('wechat-name').value.trim();
@@ -440,10 +448,14 @@ $('markdown').addEventListener('input', () => {
   markDirty(); render();
 });
 $('footer').addEventListener('change', () => { markDirty(); render(); });
+$('import-md').addEventListener('click', () => $('md-file').click());
 $('md-file').addEventListener('change', async e => { const file = e.target.files[0]; if (file) { state.assets.clear(); state.localAssets.clear(); parseFrontmatter(await file.text(), file.name); await resolveLocalImages(); toast(`已导入 ${file.name}`); } });
 $('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); resolveLocalImages(); });
 $('qr').addEventListener('change', e => { state.qr = e.target.files[0] || null; markDirty(); render(); });
 $('save').addEventListener('click', save); $('save-md').addEventListener('click', saveSource); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
+$('more-actions').addEventListener('click', event => { if (event.target.closest('.action-menu-panel button')) $('more-actions').open = false; });
+document.addEventListener('click', event => { if (!event.target.closest('#more-actions')) $('more-actions').open = false; });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') $('more-actions').open = false; });
 $('cancel-edit').addEventListener('click', () => { leaveEdit(); $('status').textContent = '已退出编辑；当前内容可另存为新文章'; render(); });
 $('refresh-posts').addEventListener('click', () => refreshSavedPosts(true));
 $('saved-posts').addEventListener('toggle', () => { if ($('saved-posts').open) refreshSavedPosts(); });

@@ -10,16 +10,20 @@
   <header class="topbar">
     <div class="brand"><span class="brand-mark">✦</span><strong>文章排版工作台</strong><span class="tagline">把写好的文字，变成好读的文章</span></div>
     <div class="top-actions">
-      <label class="button quiet" for="md-file">导入 Markdown</label><input id="md-file" type="file" accept=".md,.markdown,text/markdown" hidden>
-      <button id="save-md" class="button" type="button">另存为 Obsidian MD</button>
       <button id="save" class="button">保存到博客仓库</button>
-      <button id="publish" class="button" disabled title="先保存到博客仓库">发布到线上博客</button>
       <button id="copy" class="button primary">复制到公众号</button>
+      <details id="more-actions" class="action-menu">
+        <summary class="button" aria-label="更多操作">更多操作 <span aria-hidden="true">⌄</span></summary>
+        <div class="action-menu-panel">
+          <button id="save-md" type="button">另存为 Obsidian MD</button>
+          <button id="publish" type="button" disabled title="先保存到博客仓库">发布到线上博客</button>
+        </div>
+      </details>
     </div>
   </header>
   <main class="workspace">
     <section class="editor-pane" aria-labelledby="source-title">
-      <div class="pane-head"><h2 id="source-title">原稿</h2><span>Markdown / Obsidian</span></div>
+      <div class="pane-head"><div><h2 id="source-title">原稿</h2><span>Markdown / Obsidian</span></div><button id="import-md" class="import-action" type="button">导入 .md</button><input id="md-file" type="file" accept=".md,.markdown,text/markdown" hidden></div>
       <div id="editing-bar" class="editing-bar" hidden><span id="editing-label"></span><button id="cancel-edit" type="button">退出编辑</button></div>
       <label class="field-label" for="title">文章标题</label>
       <input id="title" class="title-input" placeholder="给文章起个标题" maxlength="150">
@@ -50,10 +54,10 @@
       </section>
     </section>
     <aside class="settings-pane" aria-labelledby="styles-title">
-      <div class="pane-head"><h2 id="styles-title">排版方案</h2><span>六种阅读气质</span></div>
-      <label class="field-label" for="font-size">全文正文字号</label>
-      <select id="font-size"><option value="14">14 px · 小</option><option value="16" selected>16 px · 标准</option><option value="18">18 px · 舒适</option><option value="20">20 px · 大</option><option value="22">22 px · 特大</option></select>
+      <div class="pane-head"><div><h2 id="styles-title">排版方案</h2><span>选择适合文章的样式</span></div></div>
       <div id="themes" class="themes" role="radiogroup" aria-label="排版方案"></div>
+      <div class="size-setting"><label class="field-label" for="font-size">正文字号</label>
+      <select id="font-size"><option value="14">14 px · 小</option><option value="16" selected>16 px · 标准</option><option value="18">18 px · 舒适</option><option value="20">20 px · 大</option><option value="22">22 px · 特大</option></select></div>
       <div class="settings-divider"></div>
       <h3>文章末尾</h3>
       <label class="toggle-row"><span><strong>添加「关于我」</strong><small>旅行、跑步、看书，也喜欢 AI 和数码</small></span><input id="footer" type="checkbox"><i></i></label>
@@ -88,7 +92,7 @@
         <p id="saved-posts-note" role="status"></p>
         <div id="saved-post-list" role="list"></div>
       </details>
-      <p class="settings-note">保存会在本地博客仓库生成文章。点击顶部“发布到线上博客”或清单中的“发布”，才会提交并推送到 GitHub。</p>
+      <p class="settings-note">保存会在本地博客仓库生成文章。点击顶部“更多操作”中的“发布到线上博客”，或清单中的“发布”，才会提交并推送到 GitHub。</p>
     </aside>
     <section class="preview-pane" aria-labelledby="preview-title">
       <div class="pane-head preview-head"><h2 id="preview-title">预览</h2><div class="view-switch" role="group" aria-label="预览宽度"><button id="desktop-view" class="active">桌面</button><button id="mobile-view">手机</button></div></div>
@@ -101,6 +105,6 @@
     <div class="saved-preview-scroll"><article id="saved-paper" class="paper theme-sage"><h1 id="saved-heading"></h1><div id="saved-body" class="article-body"></div></article></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="/app.js?v=20260928-publish-manage"></script>
+  <script type="module" src="/app.js?v=20260928-layout-refresh"></script>
 </body>
 </html>
