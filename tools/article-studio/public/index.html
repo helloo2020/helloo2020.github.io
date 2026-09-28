@@ -22,11 +22,30 @@
       <label class="field-label" for="title">文章标题</label>
       <input id="title" class="title-input" placeholder="给文章起个标题" maxlength="150">
       <div class="editor-toolbar"><span>正文</span><label class="text-action" for="assets">添加本地图片</label><input id="assets" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden></div>
-      <textarea id="markdown" spellcheck="false" placeholder="在这里粘贴文章，或导入 .md 文档。支持标题、引用、列表、链接、代码和图片。"></textarea>
+      <div class="format-toolbar" role="toolbar" aria-label="文字格式">
+        <button type="button" data-format="bold" title="选中文字后加粗（⌘B）"><b>加粗</b></button>
+        <button type="button" data-format="italic" title="选中文字后设为斜体（⌘I）"><i>斜体</i></button>
+        <button type="button" data-format="underline" title="选中文字后添加下划线（⌘U）"><u>下划线</u></button>
+        <button type="button" data-format="strike"><s>删除线</s></button>
+        <button type="button" data-format="heading">小标题</button>
+        <button type="button" data-format="quote">引用</button>
+        <button type="button" data-format="list">列表</button>
+      </div>
+      <p class="format-hint">选中文字，再点击上方按钮；效果显示在右侧预览中。</p>
+      <textarea aria-label="文章正文" id="markdown" spellcheck="false" placeholder="在这里粘贴文章，或导入 .md 文档。支持标题、引用、列表、链接、代码和图片。"></textarea>
       <div class="editor-foot"><span id="word-count">0 字</span><span id="asset-count">未添加图片</span></div>
+    <details class="image-settings">
+        <summary>关联 Obsidian 图片 <span id="image-status" role="status">导入时自动查找</span></summary>
+        <label class="field-label" for="image-directory">图片文件夹地址</label>
+        <input id="image-directory" type="text" spellcheck="false" placeholder="例如：Obsidian Blog/Assets 的完整路径">
+        <div class="image-actions"><button type="button" id="resolve-images">重新关联图片</button><label class="text-action" for="image-folder">选择图片文件夹…</label><input id="image-folder" type="file" webkitdirectory multiple hidden></div>
+        <p id="image-details">自动读取文章引用的图片，也可以选择文件夹进行匹配。</p>
+      </details>
     </section>
     <aside class="settings-pane" aria-labelledby="styles-title">
       <div class="pane-head"><h2 id="styles-title">排版方案</h2><span>六种阅读气质</span></div>
+      <label class="field-label" for="font-size">全文正文字号</label>
+      <select id="font-size"><option value="14">14 px · 小</option><option value="16" selected>16 px · 标准</option><option value="18">18 px · 舒适</option><option value="20">20 px · 大</option><option value="22">22 px · 特大</option></select>
       <div id="themes" class="themes" role="radiogroup" aria-label="排版方案"></div>
       <div class="settings-divider"></div>
       <h3>文章末尾</h3>

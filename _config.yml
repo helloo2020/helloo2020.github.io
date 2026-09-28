@@ -11,7 +11,7 @@ author: Scond
 # Build settings
 permalink: pretty
 paginate: 5
-exclude: ["README.md"]
+exclude: ["README.md", "tools", "AGENTS.md", "打开文章排版工具.command"]
 plugins: [jekyll-paginate]
 
 markdown: kramdown

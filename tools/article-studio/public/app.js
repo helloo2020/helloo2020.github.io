@@ -1,4 +1,5 @@
 import { marked } from './vendor/marked.esm.js';
+import { formatSelection } from './editor-actions.js';
 
 const $ = id => document.getElementById(id);
 const themes = [
@@ -9,13 +10,14 @@ const themes = [
   ['warm', '温暖阅读', '暖色调 · 舒适护眼', '#fbefdf', '#b27641'],
   ['minimal', '极简留白', '大字距 · 专注阅读', '#f1f3f1', '#414a43']
 ];
-const state = { theme: 'sage', assets: new Map(), qr: null, saved: null, dirty: false };
+const state = { theme: 'sage', assets: new Map(), qr: null, saved: null, dirty: false, localAssets: new Map(), objectUrls: new WeakMap(), imageRequest: 0 };
+let associationTimer;
 const example = `有时候我会想，生活的意义是什么？\n\n可能不是轰轰烈烈的成就，而是那些细碎但真实的瞬间：一杯好喝的咖啡、一本翻到一半的书、傍晚吹来的风，以及忙碌之余还能保有的那一点热爱。\n\n## 热爱的力量\n\n热爱不是遥不可及的梦想，而是让平凡的日子也闪闪发光的小小火种。它可能很微小，但足以支撑我们走过许多睡前的时刻。\n\n> 生活或许不会一直温柔，但热爱可以让我们在风雨中，依然看见光。\n\n## 在日常中发现惊喜\n\n1. 保持好奇，尝试新事物\n2. 认真对待每一次小小的体验\n3. 记录生活中的美好瞬间\n4. 与喜欢的人分享\n\n愿我们都能在平凡的日子里，保持一点热爱，并在热爱中，成为更好的自己。`;
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function toast(message, error = false) { const el = $('toast'); el.textContent = message; el.classList.toggle('error', error); el.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => el.hidden = true, 4500); }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normalizeObsidian(md) {
-  return md.replace(/!\[\[([^\]]+)\]\]/g, (_, s) => { const [name, size] = s.split('|'); return `![${name}](${name})`; })
+  return md.replace(/!\[\[([^\]]+)\]\]/g, (_, s) => { const [name, size] = s.split('|'); return `![${name}](<${name}>)`; })
     .replace(/(?<!!)\[\[([^\]]+)\]\]/g, (_, s) => s.split('|').pop().replace(/\.md$/i, ''));
 }
 function safeUrl(value, image = false) {
@@ -50,25 +52,28 @@ function renderThemes() {
 }
 function footerHtml() {
   const account = $('wechat-name').value.trim();
-  const qr = state.qr ? `<img src="${URL.createObjectURL(state.qr)}" alt="公众号二维码">` : '';
+  const qr = state.qr ? `<img src="${fileUrl(state.qr)}" alt="公众号二维码">` : '';
   return `<strong>关于我</strong><p>旅行、跑步、看书，也喜欢 AI 和数码</p><p>🌍 30+ 国家<br>🏅 半马 1h36 ｜ 全马 3h58</p><p><a href="https://scond.me">主页 scond.me</a></p>${account ? `<p>欢迎关注：${escapeHtml(account)}</p>` : ''}${qr}`;
 }
 function render() {
   const title = $('title').value.trim() || '文章标题';
   const md = normalizeObsidian($('markdown').value);
   $('preview-heading').textContent = title;
+  $('paper').style.setProperty('--article-font-size', `${$('font-size').value}px`);
   $('paper').className = `paper theme-${state.theme}${$('paper').classList.contains('mobile') ? ' mobile' : ''}`;
   $('preview-body').innerHTML = sanitize(marked.parse(md, { breaks: false, gfm: true }));
   $('preview-body').querySelectorAll('img').forEach(img => {
-    const key = decodeURIComponent(img.getAttribute('src') || '').replace(/^\.\//, '');
+    const key = decodeRef(img.getAttribute('src') || '').replace(/^\.\//, '');
     const file = state.assets.get(key) || state.assets.get(key.split('/').pop());
-    if (file) img.src = URL.createObjectURL(file);
+    if (file) img.src = fileUrl(file);
+    else if (state.localAssets.has(key)) img.src = state.localAssets.get(key).url;
   });
   $('preview-footer').hidden = !$('footer').checked;
   $('footer-options').hidden = !$('footer').checked;
   if ($('footer').checked) $('preview-footer').innerHTML = footerHtml();
   $('word-count').textContent = `${md.replace(/\s/g,'').length} 字`;
-  $('asset-count').textContent = state.assets.size ? `${state.assets.size} 张图片` : '未添加图片';
+  const linkedCount = localRefs().filter(ref => state.assets.has(ref) || state.assets.has(ref.split('/').pop()) || state.localAssets.has(ref)).length;
+  $('asset-count').textContent = linkedCount ? `${linkedCount} 张已关联图片` : '未添加图片';
 }
 function markDirty() { if (state.saved) { state.saved = null; $('publish').disabled = true; $('status').textContent = '内容已修改，请重新保存'; } }
 function parseFrontmatter(text, filename) {
@@ -86,12 +91,14 @@ function parseFrontmatter(text, filename) {
   $('title').value = meta.title || (heading ? heading[1] : filename.replace(/\.md$/i, ''));
   if (heading) body = body.slice(heading[0].length);
   $('markdown').value = body.trim();
+  if (['14','16','18','20','22'].includes(meta.article_font_size)) $('font-size').value = meta.article_font_size;
   if (meta.date && /^\d{4}-\d{2}-\d{2}$/.test(meta.date)) $('date').value = meta.date;
   markDirty(); render();
 }
 async function filesToPayload() {
-  const files = [...new Set([...state.assets.values(), ...(state.qr ? [state.qr] : [])])];
-  return Promise.all(files.map(async file => ({ name: file.name, type: file.type, data: (await toDataUrl(file)).split(',')[1] })));
+  const entries = localRefs().map(ref => [ref, state.assets.get(ref) || state.assets.get(ref.split('/').pop())]).filter(([,file]) => file);
+  if (state.qr && $('footer').checked) entries.push([state.qr.name, state.qr]);
+  return Promise.all(entries.map(async ([name,file]) => ({ name, type: file.type, data: (await toDataUrl(file)).split(',')[1] })));
 }
 function toDataUrl(file) { return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); }); }
 async function api(route, data) {
@@ -104,7 +111,8 @@ async function save() {
   if (!$('title').value.trim() || !$('markdown').value.trim()) return toast('请先填写标题和正文', true);
   $('save').disabled = true;
   try {
-    const result = await api('save', { title: $('title').value, markdown: normalizeObsidian($('markdown').value), date: $('date').value, tags: $('tags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean), style: state.theme, footer: $('footer').checked, wechatName: $('wechat-name').value, qrImageName: state.qr?.name, assets: await filesToPayload() });
+    await resolveLocalImages();
+    const result = await api('save', { title: $('title').value, markdown: normalizeObsidian($('markdown').value), date: $('date').value, tags: $('tags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean), style: state.theme, fontSize: Number($('font-size').value), localImages: [...state.localAssets.values()].filter(asset => !state.assets.has(asset.ref) && !state.assets.has(asset.ref.split('/').pop())).map(({ref,id}) => ({ref,id})), footer: $('footer').checked, wechatName: $('wechat-name').value, qrImageName: state.qr?.name, assets: await filesToPayload() });
     state.saved = result; $('publish').disabled = false;
     $('status').textContent = `已保存：${result.filename}`;
     toast('文章已保存到本地博客仓库');
@@ -112,7 +120,7 @@ async function save() {
 }
 async function publish() {
   if (!state.saved) return;
-  if (!confirm(`即将提交并推送「${$('title').value}」到 GitHub，网站会公开展示这篇文章。首次使用时还会同步工具的安装改动。继续吗？`)) return;
+  if (!confirm(`即将提交并推送「${$('title').value}」到 GitHub，网站会公开展示这篇文章。若有已检查的本地工具更新，也会一起同步。继续吗？`)) return;
   $('publish').disabled = true;
   try { const result = await api('publish', { filename: state.saved.filename }); $('status').textContent = '已推送到线上博客'; toast(result.message); }
   catch (e) { $('publish').disabled = false; toast(e.message, true); }
@@ -129,7 +137,7 @@ function inlineCopyHtml() {
     target.setAttribute('style', props.map(p => `${p}:${computed.getPropertyValue(p)}`).join(';'));
     target.removeAttribute('class'); target.removeAttribute('hidden'); target.removeAttribute('id');
   });
-  clone.querySelectorAll('img').forEach(img => { if (img.src.startsWith('blob:')) img.replaceWith(document.createTextNode(`[图片：${img.alt || '请在公众号后台上传'}]`)); });
+  clone.querySelectorAll('img').forEach(img => { if (img.src.startsWith('blob:') || img.src.startsWith(`${location.origin}/api/local-image`)) img.replaceWith(document.createTextNode(`[图片：${img.alt || '请在公众号后台上传'}]`)); });
   if (!$('footer').checked) clone.querySelector('.article-footer')?.remove();
   return clone.outerHTML;
 }
@@ -144,11 +152,76 @@ async function copy() {
 }
 $('date').value = localDate(); $('title').value = '在平凡的日子里，保持一点热爱'; $('markdown').value = example;
 renderThemes(); render();
-for (const id of ['title','markdown','date','tags','wechat-name']) $(id).addEventListener('input', () => { markDirty(); render(); });
+for (const id of ['title','markdown','date','tags','wechat-name','font-size']) $(id).addEventListener('input', () => { markDirty(); render(); });
 $('footer').addEventListener('change', () => { markDirty(); render(); });
-$('md-file').addEventListener('change', async e => { const file = e.target.files[0]; if (file) { parseFrontmatter(await file.text(), file.name); toast(`已导入 ${file.name}`); } });
+$('md-file').addEventListener('change', async e => { const file = e.target.files[0]; if (file) { state.assets.clear(); state.localAssets.clear(); parseFrontmatter(await file.text(), file.name); await resolveLocalImages(); toast(`已导入 ${file.name}`); } });
 $('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); });
 $('qr').addEventListener('change', e => { state.qr = e.target.files[0] || null; markDirty(); render(); });
 $('save').addEventListener('click', save); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
 $('desktop-view').addEventListener('click', () => { $('paper').classList.remove('mobile'); $('desktop-view').classList.add('active'); $('mobile-view').classList.remove('active'); });
 $('mobile-view').addEventListener('click', () => { $('paper').classList.add('mobile'); $('mobile-view').classList.add('active'); $('desktop-view').classList.remove('active'); });
+
+function decodeRef(value) { try { return decodeURIComponent(value); } catch { return value; } }
+function fileUrl(file) { if (!state.objectUrls.has(file)) state.objectUrls.set(file, URL.createObjectURL(file)); return state.objectUrls.get(file); }
+function localRefs() {
+  const refs = [];
+  marked.walkTokens(marked.lexer(normalizeObsidian($('markdown').value)), token => {
+    if (token.type === 'image' && !/^(https?:|data:|blob:|\/img\/)/i.test(token.href)) refs.push(decodeRef(token.href).replace(/^\.\//, ''));
+  });
+  return [...new Set(refs)];
+}
+async function resolveLocalImages() {
+  clearTimeout(associationTimer);
+  const request = ++state.imageRequest;
+  const refs = localRefs();
+  if (!refs.length) { state.localAssets.clear(); $('image-status').textContent = '没有待关联图片'; render(); return; }
+  if (refs.every(ref => state.assets.has(ref) || state.assets.has(ref.split('/').pop()))) {
+    state.localAssets.clear(); $('image-status').textContent = `已关联 ${refs.length} / ${refs.length} 张`;
+    $('image-details').textContent = '已从你选择的图片中完成匹配。'; render(); return;
+  }
+  $('image-status').textContent = '正在查找图片…';
+  try {
+    const result = await api('resolve-images', { markdown: $('markdown').value, directory: $('image-directory').value });
+    if (request !== state.imageRequest) return;
+    state.localAssets = new Map(result.assets.map(asset => [asset.ref.replace(/^\.\//, ''), asset]));
+    const missing = result.missing.filter(asset => !state.assets.has(asset.ref) && !state.assets.has(asset.ref.split('/').pop()));
+    $('image-status').textContent = `已关联 ${refs.length - missing.length} / ${refs.length} 张`;
+    $('image-details').textContent = missing.length ? missing.map(x => `${x.ref}：${x.reason}`).join('；') : '文章引用的图片已全部关联。保存到博客时会一起复制图片。';
+    if (missing.length) document.querySelector('.image-settings').open = true;
+    render();
+  } catch (error) {
+    if (request !== state.imageRequest) return;
+    state.localAssets.clear();
+    $('image-status').textContent = '请检查图片目录';
+    $('image-details').textContent = error.message;
+    render();
+  }
+}
+function applyFormat(format) {
+  const editor = $('markdown');
+  const result = formatSelection(editor.value, editor.selectionStart, editor.selectionEnd, format);
+  editor.value = result.text;
+  editor.focus(); editor.setSelectionRange(result.start, result.end);
+  markDirty(); render();
+}
+document.querySelectorAll('[data-format]').forEach(button => {
+  button.addEventListener('mousedown', event => event.preventDefault());
+  button.addEventListener('click', () => applyFormat(button.dataset.format));
+});
+$('markdown').addEventListener('keydown', event => {
+  const format = { b: 'bold', i: 'italic', u: 'underline' }[event.key.toLowerCase()];
+  if ((event.metaKey || event.ctrlKey) && !event.shiftKey && format) { event.preventDefault(); applyFormat(format); }
+});
+$('markdown').addEventListener('input', () => { clearTimeout(associationTimer); associationTimer = setTimeout(resolveLocalImages, 600); });
+$('resolve-images').addEventListener('click', resolveLocalImages);
+$('image-directory').addEventListener('change', () => { markDirty(); resolveLocalImages(); });
+$('image-folder').addEventListener('change', event => {
+  for (const file of event.target.files) {
+    if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) continue;
+    const relative = file.webkitRelativePath || file.name;
+    state.assets.set(relative, file);
+    if (!state.assets.has(file.name)) state.assets.set(file.name, file);
+  }
+  markDirty(); render(); resolveLocalImages();
+});
+fetch('/api/config').then(response => response.json()).then(config => { $('image-directory').value = config.imageDirectory; }).catch(() => { $('image-status').textContent = '请重启工具以启用图片关联'; });

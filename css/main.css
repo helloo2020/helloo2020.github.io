@@ -763,3 +763,6 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 .prose.article-style-warm { --studio-accent: #b27641; --studio-quote: #fbf0e1; }
 .prose.article-style-minimal { --studio-accent: #414a43; --studio-quote: #f6f7f6; font-family: var(--sans); letter-spacing: .025em; }
 [data-theme="dark"] .prose[class*="article-style-"] { --studio-accent: var(--link); --studio-quote: var(--paper-soft); }
+.prose.article-size-14{font-size:14px}.prose.article-size-16{font-size:16px}.prose.article-size-18{font-size:18px}.prose.article-size-20{font-size:20px}.prose.article-size-22{font-size:22px}
+.prose[class*="article-size-"] h2{font-size:1.375em}.prose[class*="article-size-"] h3{font-size:1.125em}
+.prose[class*="article-size-"] blockquote{font-size:1em}

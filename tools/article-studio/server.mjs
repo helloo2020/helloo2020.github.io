@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const blog = path.resolve(here, '../..');
@@ -41,7 +42,7 @@ function yamlString(value) { return JSON.stringify(String(value)); }
 function normalizeImageLinks(markdown, imageMap) {
   return markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)|!\[\[([^\]]+)\]\]/g, (all, alt, url, wiki) => {
     const raw = (url || wiki).split('|')[0].trim().replace(/^<|>$/g, '');
-    const key = decodeURIComponent(raw).replace(/^\.\//, '');
+    const key = decodeRef(raw).replace(/^\.\//, '');
     const target = imageMap.get(key) || imageMap.get(path.basename(key));
     return target ? `![${alt || path.basename(key)}](${target})` : all;
   });
@@ -59,9 +60,17 @@ async function savePost(data) {
   const style = ['sage', 'classic', 'modern', 'literary', 'warm', 'minimal'].includes(data.style) ? data.style : 'sage';
   const tags = Array.isArray(data.tags) ? data.tags.map(x => String(x).trim()).filter(Boolean).slice(0, 8) : [];
   const imageMap = new Map();
+  const fontSize = [14,16,18,20,22].includes(Number(data.fontSize)) ? Number(data.fontSize) : 16;
+  const bodyRefs = imageReferences(body);
+  const incomingAssets = Array.isArray(data.assets) ? [...data.assets] : [];
+  for (const local of (Array.isArray(data.localImages) ? data.localImages : [])) {
+    if (!bodyRefs.includes(local.ref)) continue;
+    const image = await readGrantedImage(local.id);
+    incomingAssets.push({ name: local.ref, type: image.type, data: image.bytes.toString('base64') });
+  }
   const assetPaths = [];
   const assetDir = path.join(blog, 'img', 'article-studio', `${date}-${slug}`);
-  for (const [i, asset] of (Array.isArray(data.assets) ? data.assets : []).entries()) {
+  for (const [i, asset] of incomingAssets.entries()) {
     if (i >= 30) throw new Error('单篇最多导入 30 张图片');
     const ext = allowedExt.get(asset.type);
     if (!ext || typeof asset.data !== 'string' || typeof asset.name !== 'string') throw new Error('图片格式不支持');
@@ -74,15 +83,13 @@ async function savePost(data) {
     imageMap.set(path.basename(asset.name), webPath);
     assetPaths.push({ file: path.join(assetDir, name), bytes });
   }
-  const missingLocal = [...body.matchAll(/!\[[^\]]*\]\(([^)]+)\)|!\[\[([^\]]+)\]\]/g)]
-    .map(m => (m[1] || m[2]).split('|')[0].trim())
-    .filter(ref => !/^https?:\/\//i.test(ref) && !ref.startsWith('/img/') && !ref.startsWith('data:') && !imageMap.has(ref.replace(/^\.\//, '')) && !imageMap.has(path.basename(ref)));
+  const missingLocal = bodyRefs.filter(ref => !/^https?:\/\//i.test(ref) && !ref.startsWith('/img/') && !imageMap.has(ref.replace(/^\.\//, '')) && !imageMap.has(path.basename(ref)));
   if (missingLocal.length) throw new Error(`这些本地图片尚未添加：${missingLocal.slice(0, 3).join('、')}`);
   const normalized = normalizeImageLinks(body, imageMap);
   const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : null;
   const footer = data.footer ? `\n\n---\n\n**关于我**  \n旅行、跑步、看书，也喜欢 AI 和数码  \n🌍 30+ 国家 · 🏅 半马 1h36 ｜ 全马 3h58  \n[主页 scond.me](https://scond.me)\n${data.wechatName ? `\n欢迎关注：${String(data.wechatName).trim().slice(0, 60)}\n` : ''}${qrPath ? `\n![公众号二维码](${qrPath})\n` : ''}` : '';
   const frontmatter = [
-    '---', 'layout: post', `title: ${yamlString(title)}`, `date: ${date}`, 'author: Scond', `article_style: ${style}`, 'article_studio: true',
+    '---', 'layout: post', `title: ${yamlString(title)}`, `date: ${date}`, 'author: Scond', `article_style: ${style}`, `article_font_size: ${fontSize}`, 'article_studio: true',
     'tags:', ...tags.map(t => `  - ${yamlString(t)}`), '---', ''
   ].join('\n');
   await fs.mkdir(posts, { recursive: true });
@@ -113,14 +120,15 @@ async function publishPost(filename) {
   const postSubject = `post: ${filename.slice(11, -3)}`;
   let hasPendingPostCommit = false;
   if (ahead) {
-    const subjects = (await runGit(['log', '--format=%s', 'origin/master..HEAD'])).split('\n').filter(Boolean);
-    const pendingFiles = (await runGit(['-c', 'core.quotePath=false', 'diff', '--name-only', 'origin/master..HEAD'])).split('\n').filter(Boolean);
-    const allowedSetupFile = file => ['.gitignore', 'AGENTS.md', 'README.md', '打开文章排版工具.command', '_includes/head.html', '_layouts/post.html', 'css/main.css'].includes(file) || file.startsWith('tools/article-studio/') || file.startsWith('.ai/');
-    hasPendingPostCommit = subjects[0] === postSubject;
-    const validSubjects = subjects.length === 1 && (subjects[0] === 'feat: add local article studio' || hasPendingPostCommit)
-      || subjects.length === 2 && hasPendingPostCommit && subjects[1] === 'feat: add local article studio';
-    if (!validSubjects || !pendingFiles.every(file => allowedSetupFile(file) || hasPendingPostCommit && (file === rel || file.startsWith(`${assetDir}/`))))
-      throw new Error('本地已有其他未推送提交，为避免连带发布，请先处理 Git 同步');
+    const commits = (await runGit(['log', '--format=%H%x09%s', 'origin/master..HEAD'])).split('\n').filter(Boolean).map(line => { const [sha, ...subject] = line.split('\t'); return { sha, subject: subject.join('\t') }; });
+    const allowedSetupFile = file => ['.gitignore', 'AGENTS.md', 'README.md', '打开文章排版工具.command', '_config.yml', '_includes/head.html', '_layouts/post.html', 'css/main.css'].includes(file) || file.startsWith('tools/article-studio/') || file.startsWith('.ai/');
+    hasPendingPostCommit = commits[0]?.subject === postSubject;
+    for (const commit of commits) {
+      const files = (await runGit(['-c', 'core.quotePath=false', 'diff-tree', '--no-commit-id', '--name-only', '-r', commit.sha])).split('\n').filter(Boolean);
+      const setup = (commit.subject === 'feat: add local article studio' || commit.subject.startsWith('studio: ')) && files.every(allowedSetupFile);
+      const retry = hasPendingPostCommit && commit.subject === postSubject && files.every(file => file === rel || file.startsWith(`${assetDir}/`));
+      if (!setup && !retry) throw new Error('本地已有其他未推送提交，为避免连带发布，请先处理 Git 同步');
+    }
   }
   const changed = await runGit(['status', '--porcelain', '--', rel]);
   if (changed && !changed.startsWith('?? ')) throw new Error('这篇文章已有未提交修改，请先检查文件');
@@ -144,6 +152,16 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 http.createServer(async (req, res) => {
   try {
     if (!sameOrigin(req)) return json(res, 403, { error: '只接受本地页面请求' });
+    if (req.url === '/api/config' && req.method === 'GET') return json(res, 200, { imageDirectory: DEFAULT_IMAGES });
+    if (req.url === '/api/resolve-images' && req.method === 'POST') {
+      const data = await requestBody(req);
+      return json(res, 200, await resolveImages(data.markdown, data.directory));
+    }
+    if (req.url?.startsWith('/api/local-image?') && req.method === 'GET') {
+      const image = await readGrantedImage(new URL(req.url, `http://${host}:${port}`).searchParams.get('id'));
+      res.writeHead(200, { 'content-type': image.type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      return res.end(image.bytes);
+    }
     if (req.url === '/api/health' && req.method === 'GET') return json(res, 200, { app: 'scond-article-studio' });
     if (req.url === '/api/save' && req.method === 'POST') return json(res, 200, await savePost(await requestBody(req)));
     if (req.url === '/api/publish' && req.method === 'POST') return json(res, 200, await publishPost((await requestBody(req)).filename));
@@ -158,7 +176,7 @@ http.createServer(async (req, res) => {
     res.end(bytes);
   } catch (e) { json(res, 400, { error: e.message || '操作失败' }); }
 }).on('error', error => {
-  if (error.code === 'EADDRINUSE') console.error(`4174 端口已被占用，请关闭占用端口的程序后重试。`);
+  if (error.code === 'EADDRINUSE') console.error(`${port} 端口已被占用，请关闭占用端口的程序后重试。`);
   else console.error(`启动失败：${error.message}`);
   process.exitCode = 1;
 }).listen(port, host, () => console.log(`文章排版工作台：http://${host}:${port}`));
