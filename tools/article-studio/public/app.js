@@ -156,14 +156,21 @@ async function inlineCopyHtml() {
     if (unresolved.length) throw new Error(`有 ${unresolved.length} 张图片未关联：${unresolved.slice(0, 2).join('、')}`);
   }
   const clone = $('paper').cloneNode(true);
-  clone.removeAttribute('id'); clone.className = '';
+  clone.removeAttribute('id'); clone.removeAttribute('class');
   const sourceNodes = [$('paper'), ...$('paper').querySelectorAll('*')];
   const targetNodes = [clone, ...clone.querySelectorAll('*')];
   sourceNodes.forEach((source, i) => {
     const target = targetNodes[i]; if (!target) return;
     const computed = getComputedStyle(source);
+    if (i === 0) {
+      target.setAttribute('style', `color:${computed.color};background-color:${computed.backgroundColor};font-family:${computed.fontFamily};font-size:${computed.fontSize};line-height:${computed.lineHeight};text-align:${wechatTextAlign(computed.textAlign, computed.direction)};width:100%;max-width:100%;margin:0;padding:0;border:0;border-radius:0;box-sizing:border-box`);
+      return;
+    }
     const props = ['color','background-color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','margin-top','margin-bottom','padding-top','padding-right','padding-bottom','padding-left','border-left','border-top','border-bottom','border-radius','max-width','display','text-decoration'];
     target.setAttribute('style', props.map(p => `${p}:${p === 'text-align' ? wechatTextAlign(computed.getPropertyValue(p), computed.direction) : computed.getPropertyValue(p)}`).join(';'));
+    if (source.tagName === 'H1') { target.style.fontSize = '24px'; target.style.lineHeight = '1.45'; }
+    if (source.tagName === 'H2') { target.style.fontSize = `${Math.min(22, Number($('font-size').value) + 3)}px`; target.style.lineHeight = '1.45'; target.style.marginTop = '1.6em'; target.style.marginBottom = '.65em'; }
+    if (source.tagName === 'H3') { target.style.fontSize = `${Math.min(19, Number($('font-size').value) + 1)}px`; target.style.lineHeight = '1.45'; target.style.marginTop = '1.5em'; target.style.marginBottom = '.6em'; }
     target.removeAttribute('class'); target.removeAttribute('hidden'); target.removeAttribute('id');
   });
   if (!$('footer').checked) clone.querySelector('.article-footer')?.remove();
