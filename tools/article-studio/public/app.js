@@ -12,7 +12,7 @@ const themes = [
   ['warm', '温暖阅读', '暖色调 · 舒适护眼', '#fbefdf', '#b27641'],
   ['minimal', '极简留白', '大字距 · 专注阅读', '#f1f3f1', '#414a43']
 ];
-const state = { theme: 'sage', assets: new Map(), qr: null, saved: null, dirty: false, localAssets: new Map(), objectUrls: new WeakMap(), imageRequest: 0, importedFilename: '', importedFrontmatter: '', importedHeading: false, sourceFilenameEdited: false };
+const state = { theme: 'sage', assets: new Map(), qr: null, existingQrUrl: '', saved: null, editing: null, dirty: false, localAssets: new Map(), objectUrls: new WeakMap(), imageRequest: 0, importedFilename: '', importedFrontmatter: '', importedHeading: false, sourceFilenameEdited: false };
 let associationTimer;
 let foldersReady;
 const example = `有时候我会想，生活的意义是什么？\n\n可能不是轰轰烈烈的成就，而是那些细碎但真实的瞬间：一杯好喝的咖啡、一本翻到一半的书、傍晚吹来的风，以及忙碌之余还能保有的那一点热爱。\n\n## 热爱的力量\n\n热爱不是遥不可及的梦想，而是让平凡的日子也闪闪发光的小小火种。它可能很微小，但足以支撑我们走过许多睡前的时刻。\n\n> 生活或许不会一直温柔，但热爱可以让我们在风雨中，依然看见光。\n\n## 在日常中发现惊喜\n\n1. 保持好奇，尝试新事物\n2. 认真对待每一次小小的体验\n3. 记录生活中的美好瞬间\n4. 与喜欢的人分享\n\n愿我们都能在平凡的日子里，保持一点热爱，并在热爱中，成为更好的自己。`;
@@ -55,7 +55,7 @@ function renderThemes() {
 }
 function footerHtml() {
   const account = $('wechat-name').value.trim();
-  const qr = state.qr ? `<img src="${fileUrl(state.qr)}" alt="公众号二维码">` : '';
+  const qr = state.qr ? `<img src="${fileUrl(state.qr)}" alt="公众号二维码">` : state.existingQrUrl ? `<img src="${escapeHtml(state.existingQrUrl)}" alt="公众号二维码">` : '';
   return `<strong>关于我</strong><p>旅行、跑步、看书，也喜欢 AI 和数码</p><p>🌍 30+ 国家<br>🏅 半马 1h36 ｜ 全马 3h58</p><p><a href="https://scond.me">主页 scond.me</a></p>${account ? `<p>欢迎关注：${escapeHtml(account)}</p>` : ''}${qr}`;
 }
 function render() {
@@ -81,7 +81,7 @@ function render() {
 }
 function localPreviewImages() {
   const images = [...$('preview-body').querySelectorAll('img'), ...($('footer').checked ? $('preview-footer').querySelectorAll('img') : [])];
-  return images.filter(img => img.src.startsWith('blob:') || img.src.startsWith(`${location.origin}/api/local-image`));
+  return images.filter(img => img.src.startsWith('blob:') || img.src.startsWith(`${location.origin}/api/local-image`) || img.src.startsWith(`${location.origin}/img/`));
 }
 function renderImageCopies() {
   const images = localPreviewImages();
@@ -101,7 +101,17 @@ function renderImageCopies() {
   }));
 }
 function markDirty() { if (state.saved) { state.saved = null; $('publish').disabled = true; $('status').textContent = '内容已修改，请重新保存'; } }
+function leaveEdit() {
+  state.editing = null;
+  state.existingQrUrl = '';
+  $('editing-bar').hidden = true;
+  $('date').disabled = false;
+  $('save').textContent = '保存到博客仓库';
+  state.saved = null;
+  $('publish').disabled = true;
+}
 function parseFrontmatter(text, filename) {
+  leaveEdit();
   let body = text.replace(/^\uFEFF/, '');
   let meta = {};
   const match = body.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
@@ -185,10 +195,17 @@ async function save() {
   $('save').disabled = true;
   try {
     await resolveLocalImages();
-    const result = await api('save', { title: $('title').value, markdown: normalizeObsidian($('markdown').value), date: $('date').value, tags: $('tags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean), style: state.theme, fontSize: Number($('font-size').value), sourceAccount: $('source-account').value, sourcePublishedAt: $('source-published').value, sourceUrl: $('source-url').value, localImages: [...state.localAssets.values()].filter(asset => !state.assets.has(asset.ref) && !state.assets.has(asset.ref.split('/').pop())).map(({ref,id}) => ({ref,id})), footer: $('footer').checked, wechatName: $('wechat-name').value, qrImageName: state.qr?.name, assets: await filesToPayload() });
+    const result = await api('save', { title: $('title').value, markdown: normalizeObsidian($('markdown').value), date: $('date').value, tags: $('tags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean), style: state.theme, fontSize: Number($('font-size').value), sourceAccount: $('source-account').value, sourcePublishedAt: $('source-published').value, sourceUrl: $('source-url').value, localImages: [...state.localAssets.values()].filter(asset => !state.assets.has(asset.ref) && !state.assets.has(asset.ref.split('/').pop())).map(({ref,id}) => ({ref,id})), footer: $('footer').checked, wechatName: $('wechat-name').value, qrImageName: state.qr?.name, assets: await filesToPayload(), editingFilename: state.editing?.filename, expectedRevision: state.editing?.revision });
+    if (state.editing) {
+      state.editing.revision = result.revision;
+      $('markdown').value = result.markdown;
+      state.assets.clear(); state.localAssets.clear(); state.qr = null; $('qr').value = '';
+      state.existingQrUrl = result.qrPath || '';
+      render();
+    }
     state.saved = result; $('publish').disabled = false;
-    $('status').textContent = `已保存：${result.filename}`;
-    toast('文章已保存到本地博客仓库');
+    $('status').textContent = `已${state.editing ? '更新' : '保存'}：${result.filename}`;
+    toast(state.editing ? '原文章已更新到本地博客仓库' : '文章已保存到本地博客仓库');
     $('saved-posts').open = true;
     refreshSavedPosts();
   } catch (e) { toast(e.message, true); } finally { $('save').disabled = false; }
@@ -214,13 +231,68 @@ async function refreshSavedPosts() {
       const name = document.createElement('span'); name.textContent = post.title;
       const date = document.createElement('small'); date.textContent = `${post.date} · 仓库文件`;
       name.append(date);
-      const button = document.createElement('button'); button.type = 'button'; button.textContent = '预览';
-      button.addEventListener('click', () => showSavedPreview(post.filename));
-      row.append(name, button);
+      const actions = document.createElement('div'); actions.className = 'saved-post-actions';
+      for (const [label, action] of [['预览', () => showSavedPreview(post.filename)], ['编辑', () => editSavedPost(post.filename)], ['删除', () => deleteSavedPost(post)]]) {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+        if (label === '删除') button.className = 'danger';
+        button.addEventListener('click', action);
+        actions.append(button);
+      }
+      row.append(name, actions);
       return row;
     }));
     if (!posts.length) $('saved-post-list').textContent = '还没有通过本工具保存的博客文章。';
   } catch (error) { $('saved-post-list').textContent = `清单读取失败：${error.message}`; }
+}
+async function editSavedPost(filename) {
+  if (!confirm('载入这篇文章会替换当前编辑区的内容。继续吗？')) return;
+  try {
+    const post = await getApi(`studio-post?filename=${encodeURIComponent(filename)}`);
+    const footerMark = '\n\n---\n\n**关于我**  \n';
+    const footerAt = post.body.lastIndexOf(footerMark);
+    const footer = footerAt < 0 ? '' : post.body.slice(footerAt + footerMark.length);
+    const article = footerAt < 0 ? post.body : post.body.slice(0, footerAt);
+    const extracted = extractBlogSource(article.trim());
+    state.assets.clear(); state.localAssets.clear(); state.qr = null;
+    state.existingQrUrl = footer.match(/!\[公众号二维码\]\((\/img\/article-studio\/[^)]+)\)/)?.[1] || '';
+    $('qr').value = '';
+    state.importedFilename = ''; state.importedFrontmatter = ''; state.importedHeading = false;
+    state.editing = { filename: post.filename, revision: post.revision };
+    state.saved = null;
+    $('publish').disabled = true;
+    $('title').value = post.title;
+    $('date').value = post.date;
+    $('date').disabled = true;
+    $('tags').value = post.tags.join('，');
+    $('markdown').value = extracted.body;
+    $('source-account').value = extracted.source?.account || 'Scond';
+    $('source-published').value = extracted.source?.publishedAt || '';
+    $('source-url').value = extracted.source?.url || '';
+    $('blog-source').open = Boolean(extracted.source);
+    $('font-size').value = String(post.fontSize);
+    state.theme = post.style;
+    $('footer').checked = Boolean(footer);
+    $('wechat-name').value = footer.match(/欢迎关注：([^\n]+)/)?.[1] || '';
+    $('source-filename').value = suggestedSourceFilename(post.title);
+    state.sourceFilenameEdited = false;
+    $('editing-label').textContent = `正在编辑：${post.title}。更新会保留原文章文件名和链接。`;
+    $('editing-bar').hidden = false;
+    $('save').textContent = '更新博客文章';
+    $('status').textContent = `正在编辑：${post.filename}`;
+    renderThemes(); render(); await resolveLocalImages();
+    $('title').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  } catch (error) { toast(`载入失败：${error.message}`, true); }
+}
+async function deleteSavedPost(post) {
+  if (!confirm(`确定从本地博客仓库删除「${post.title}」吗？此操作不会让已发布的线上文章下线，原有配图文件会保留。`)) return;
+  try {
+    await api('delete-studio-post', { filename: post.filename, expectedRevision: post.revision });
+    if (state.editing?.filename === post.filename) leaveEdit();
+    if (state.saved?.filename === post.filename) { state.saved = null; $('publish').disabled = true; }
+    $('status').textContent = `已从本地仓库删除：${post.filename}`;
+    toast('本地文章已删除；线上文章如已发布，仍需单独处理');
+    await refreshSavedPosts();
+  } catch (error) { toast(`删除失败：${error.message}`, true); }
 }
 async function showSavedPreview(filename) {
   try {
@@ -238,7 +310,7 @@ async function publish() {
   if (!state.saved) return;
   if (!confirm(`即将提交并推送「${$('title').value}」到 GitHub，网站会公开展示这篇文章。若有已检查的本地工具更新，也会一起同步。继续吗？`)) return;
   $('publish').disabled = true;
-  try { const result = await api('publish', { filename: state.saved.filename }); $('status').textContent = '已推送到线上博客'; toast(result.message); }
+  try { const result = await api('publish', { filename: state.saved.filename, revision: state.saved.revision }); $('status').textContent = '已推送到线上博客'; toast(result.message); }
   catch (e) { $('publish').disabled = false; toast(e.message, true); }
 }
 async function inlineCopyHtml() {
@@ -268,7 +340,7 @@ async function inlineCopyHtml() {
   });
   if (!$('footer').checked) clone.querySelector('.article-footer')?.remove();
   await Promise.all([...clone.querySelectorAll('img')].map(async img => {
-    if (!img.src.startsWith('blob:') && !img.src.startsWith(`${location.origin}/api/local-image`)) return;
+    if (!localPreviewImages().some(local => local.src === img.src)) return;
     const response = await fetch(img.src);
     if (!response.ok) throw new Error(`无法读取图片：${img.alt || '未命名图片'}`);
     img.src = await toDataUrl(await response.blob());
@@ -336,6 +408,7 @@ $('md-file').addEventListener('change', async e => { const file = e.target.files
 $('assets').addEventListener('change', e => { for (const file of e.target.files) state.assets.set(file.name, file); markDirty(); render(); resolveLocalImages(); });
 $('qr').addEventListener('change', e => { state.qr = e.target.files[0] || null; markDirty(); render(); });
 $('save').addEventListener('click', save); $('save-md').addEventListener('click', saveSource); $('publish').addEventListener('click', publish); $('copy').addEventListener('click', copy);
+$('cancel-edit').addEventListener('click', () => { leaveEdit(); $('status').textContent = '已退出编辑；当前内容可另存为新文章'; render(); });
 $('refresh-posts').addEventListener('click', refreshSavedPosts);
 $('saved-posts').addEventListener('toggle', () => { if ($('saved-posts').open) refreshSavedPosts(); });
 $('close-saved-preview').addEventListener('click', () => $('saved-preview').close());

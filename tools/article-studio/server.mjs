@@ -1,12 +1,13 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
 import { formatBlogSource } from './public/blog-source.js';
 import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
-import { listStudioPosts, readStudioPost } from './saved-posts.mjs';
+import { listStudioPosts, readStudioPost, deleteStudioPost } from './saved-posts.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const blog = path.resolve(here, '../..');
@@ -57,9 +58,13 @@ async function savePost(data) {
   if (!title || title.length > 150 || !body || body.length > 300000 || !validDate(date)) throw new Error('请填写有效的标题、日期和正文');
   const slug = slugify(title);
   if (!slug) throw new Error('标题无法用于文件名');
-  const filename = `${date}-${slug}.md`;
+  const editingFilename = data.editingFilename || '';
+  const existing = editingFilename ? await readStudioPost(editingFilename, posts) : null;
+  if (existing && existing.revision !== data.expectedRevision) throw new Error('文章已被其他操作修改，请重新从清单载入');
+  if (existing && existing.date !== date) throw new Error('编辑时不能修改发布日期，以免改变文章链接');
+  const filename = existing ? editingFilename : `${date}-${slug}.md`;
   const filepath = path.join(posts, filename);
-  try { await fs.access(filepath); throw new Error('博客中已有同名文章，请修改标题或日期'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  if (!existing) try { await fs.access(filepath); throw new Error('博客中已有同名文章，请修改标题或日期'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   const style = ['sage', 'classic', 'modern', 'literary', 'warm', 'minimal'].includes(data.style) ? data.style : 'sage';
   const tags = Array.isArray(data.tags) ? data.tags.map(x => String(x).trim()).filter(Boolean).slice(0, 8) : [];
   const sourceUrl = String(data.sourceUrl || '').trim();
@@ -84,7 +89,7 @@ async function savePost(data) {
     incomingAssets.push({ name: local.ref, type: image.type, data: image.bytes.toString('base64') });
   }
   const assetPaths = [];
-  const assetDir = path.join(blog, 'img', 'article-studio', `${date}-${slug}`);
+  const assetDir = path.join(blog, 'img', 'article-studio', filename.slice(0, -3));
   for (const [i, asset] of incomingAssets.entries()) {
     if (i >= 30) throw new Error('单篇最多导入 30 张图片');
     const ext = allowedExt.get(asset.type);
@@ -92,8 +97,8 @@ async function savePost(data) {
     const bytes = Buffer.from(asset.data, 'base64');
     if (bytes.length > 5 * 1024 * 1024 || bytes.length === 0) throw new Error('单张图片不能超过 5 MB');
     const base = slugify(path.basename(asset.name, path.extname(asset.name))) || `image-${i + 1}`;
-    const name = `${String(i + 1).padStart(2, '0')}-${base}${ext}`;
-    const webPath = `/img/article-studio/${date}-${slug}/${name}`;
+    const name = existing ? `${String(i + 1).padStart(2, '0')}-${base}-${randomUUID().slice(0, 8)}${ext}` : `${String(i + 1).padStart(2, '0')}-${base}${ext}`;
+    const webPath = `/img/article-studio/${filename.slice(0, -3)}/${name}`;
     imageMap.set(asset.name.replace(/^\.\//, ''), webPath);
     imageMap.set(path.basename(asset.name), webPath);
     assetPaths.push({ file: path.join(assetDir, name), bytes });
@@ -102,7 +107,8 @@ async function savePost(data) {
   if (missingLocal.length) throw new Error(`这些本地图片尚未添加：${missingLocal.slice(0, 3).join('、')}`);
   const normalized = normalizeImageLinks(body, imageMap);
   const source = formatBlogSource({ account: sourceAccount, publishedAt: sourcePublishedAt, url: sourceHref });
-  const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : null;
+  const priorQr = existing?.body.match(/!\[公众号二维码\]\((\/img\/article-studio\/[^)]+)\)/)?.[1] || null;
+  const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : priorQr;
   const footer = data.footer ? `\n\n---\n\n**关于我**  \n旅行、跑步、看书，也喜欢 AI 和数码  \n🌍 30+ 国家 · 🏅 半马 1h36 ｜ 全马 3h58  \n[主页 scond.me](https://scond.me)\n${data.wechatName ? `\n欢迎关注：${String(data.wechatName).trim().slice(0, 60)}\n` : ''}${qrPath ? `\n![公众号二维码](${qrPath})\n` : ''}` : '';
   const frontmatter = [
     '---', 'layout: post', `title: ${yamlString(title)}`, `date: ${date}`, 'author: Scond', `article_style: ${style}`, `article_font_size: ${fontSize}`, 'article_studio: true',
@@ -110,20 +116,26 @@ async function savePost(data) {
   ].join('\n');
   await fs.mkdir(posts, { recursive: true });
   if (assetPaths.length) await fs.mkdir(assetDir, { recursive: true });
+  const tempPath = existing ? path.join(posts, `.${filename}.${randomUUID()}.tmp`) : null;
   try {
     for (const asset of assetPaths) await fs.writeFile(asset.file, asset.bytes, { flag: 'wx' });
-    await fs.writeFile(filepath, `${frontmatter}${source ? `${source}\n\n` : ''}${normalized}${footer}\n`, { flag: 'wx' });
+    const content = `${frontmatter}${source ? `${source}\n\n` : ''}${normalized}${footer}\n`;
+    if (existing) {
+      await fs.writeFile(tempPath, content, { flag: 'wx' });
+      await fs.rename(tempPath, filepath);
+    } else await fs.writeFile(filepath, content, { flag: 'wx' });
   } catch (e) {
     await Promise.all(assetPaths.map(x => fs.rm(x.file, { force: true })));
+    if (tempPath) await fs.rm(tempPath, { force: true });
     throw e;
   }
-  return { filename, assets: assetPaths.map(x => path.relative(blog, x.file)), previewUrl: `https://blog.scond.me/${date.replace(/-/g, '/')}/${encodeURIComponent(slug)}/` };
+  return { filename, revision: (await readStudioPost(filename, posts)).revision, markdown: normalized, qrPath: data.footer ? qrPath : '', assets: assetPaths.map(x => path.relative(blog, x.file)), previewUrl: `https://blog.scond.me/${filename.slice(0, 10).replace(/-/g, '/')}/${encodeURIComponent(filename.slice(11, -3))}/` };
 }
-async function publishPost(filename) {
+async function publishPost(filename, expectedRevision) {
   if (typeof filename !== 'string' || path.basename(filename) !== filename || !/^\d{4}-\d{2}-\d{2}-.+\.md$/.test(filename)) throw new Error('文章文件名无效');
   const rel = `_posts/${filename}`;
-  const content = await fs.readFile(path.join(posts, filename), 'utf8');
-  if (!/^---\n[\s\S]*?article_studio: true\n[\s\S]*?---\n/.test(content)) throw new Error('只能发布由排版工具保存的文章');
+  const post = await readStudioPost(filename, posts);
+  if (post.revision !== expectedRevision) throw new Error('文章在保存后又发生变化，请重新载入并检查');
   const branch = await runGit(['branch', '--show-current']);
   if (branch !== 'master') throw new Error('请在博客 master 分支发布');
   const remote = await runGit(['remote', 'get-url', 'origin']);
@@ -147,7 +159,7 @@ async function publishPost(filename) {
     }
   }
   const changed = await runGit(['status', '--porcelain', '--', rel]);
-  if (changed && !changed.startsWith('?? ')) throw new Error('这篇文章已有未提交修改，请先检查文件');
+  if (changed && !changed.startsWith('?? ') && !changed.startsWith(' M ')) throw new Error('这篇文章已有其他 Git 修改，请先检查文件');
   if (!changed && !hasPendingPostCommit) throw new Error('这篇文章已经发布或由其他方式提交');
   try {
     if (changed) {
@@ -174,6 +186,10 @@ http.createServer(async (req, res) => {
     if (req.url === '/api/save-source' && req.method === 'POST') return json(res, 200, await saveSourceDraft(await requestBody(req), { root: OBSIDIAN_ROOT, blogImages: path.join(blog, 'img') }));
     if (req.url === '/api/studio-posts' && req.method === 'GET') return json(res, 200, { posts: await listStudioPosts(posts) });
     if (req.url?.startsWith('/api/studio-post?') && req.method === 'GET') return json(res, 200, await readStudioPost(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename'), posts));
+    if (req.url === '/api/delete-studio-post' && req.method === 'POST') {
+      const data = await requestBody(req);
+      return json(res, 200, await deleteStudioPost(data.filename, data.expectedRevision, posts));
+    }
     if (req.url === '/api/resolve-images' && req.method === 'POST') {
       const data = await requestBody(req);
       return json(res, 200, await resolveImages(data.markdown, data.directory));
@@ -185,7 +201,10 @@ http.createServer(async (req, res) => {
     }
     if (req.url === '/api/health' && req.method === 'GET') return json(res, 200, { app: 'scond-article-studio' });
     if (req.url === '/api/save' && req.method === 'POST') return json(res, 200, await savePost(await requestBody(req)));
-    if (req.url === '/api/publish' && req.method === 'POST') return json(res, 200, await publishPost((await requestBody(req)).filename));
+    if (req.url === '/api/publish' && req.method === 'POST') {
+      const data = await requestBody(req);
+      return json(res, 200, await publishPost(data.filename, data.revision));
+    }
     if (req.url?.startsWith('/api/')) return json(res, 404, { error: '接口不存在' });
     if (req.method !== 'GET') return json(res, 405, { error: '方法不支持' });
     if (req.url?.startsWith('/img/')) {
