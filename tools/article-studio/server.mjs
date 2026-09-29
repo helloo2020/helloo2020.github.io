@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences } from './local-images.mjs';
 import { normalizeImageLinks } from './blog-image-links.mjs';
+import { formatBlogSourceFootnote } from './public/blog-source.js';
 import { blogPreviewPath, startBlogPreview } from './blog-preview.mjs';
 import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
 import { deleteStudioPost, readStudioPost } from './saved-posts.mjs';
@@ -117,6 +118,7 @@ async function savePost(data) {
   const missingLocal = bodyRefs.filter(ref => !/^https?:\/\//i.test(ref) && !ref.startsWith('/img/') && !imageMap.has(ref.replace(/^\.\//, '')) && !imageMap.has(path.basename(ref)));
   if (missingLocal.length) throw new Error(`这些本地图片尚未添加：${missingLocal.slice(0, 3).join('、')}`);
   const normalized = normalizeImageLinks(body, imageMap);
+  const sourceNote = formatBlogSourceFootnote({ title, url: sourceHref });
   const priorQr = existing?.body.match(/!\[公众号二维码\]\((\/img\/article-studio\/[^)]+)\)/)?.[1] || null;
   const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : priorQr;
   const wechatName = String(data.wechatName || '').trim().replace(/^公众号\s*[：:]?\s*/, '').slice(0, 60);
@@ -131,7 +133,7 @@ async function savePost(data) {
   const tempPath = existing ? path.join(posts, `.${filename}.${randomUUID()}.tmp`) : null;
   try {
     for (const asset of assetPaths) await fs.writeFile(asset.file, asset.bytes, { flag: 'wx' });
-    const content = `${frontmatter}${normalized}${footer}\n`;
+    const content = `${frontmatter}${normalized}${sourceNote ? `\n\n${sourceNote}` : ''}${footer}\n`;
     if (existing) {
       await fs.writeFile(tempPath, content, { flag: 'wx' });
       await fs.rename(tempPath, filepath);

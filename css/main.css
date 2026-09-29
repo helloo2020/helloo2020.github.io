@@ -529,18 +529,16 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 .toc-mobile .toc-depth-1 { padding-left: 0.8rem; }
 .toc-mobile .toc-depth-2 { padding-left: 1.6rem; }
 
-.post-source {
-  margin: 2.2rem 0 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--hairline);
+.post-content .post-source {
+  margin: 1.5rem 0 0.5rem;
   color: var(--ink-soft);
   font-family: var(--sans);
   font-size: 0.78rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
-.post-source a { color: inherit; text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
-.post-source a:hover { color: var(--link); text-decoration-color: currentColor; }
+.post-content.prose .post-source a { color: inherit; text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px; }
+.post-content.prose .post-source a:hover { color: var(--link); text-decoration-color: currentColor; }
 
 /* ---------- 上一篇 / 下一篇 ---------- */
 

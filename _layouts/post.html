@@ -42,10 +42,6 @@ layout: default
             <div class="post-content prose{% if page.article_style %} article-style-{{ page.article_style | escape }}{% if page.article_font_size %} article-size-{{ page.article_font_size | escape }}{% endif %}{% endif %}">
                 {{ content }}
             </div>
-            {% if page.source_url %}
-            <p class="post-source">原文发布在公众号 {{ page.source_account | default: 'Scond' | escape }}：<a href="{{ page.source_url | escape }}" target="_blank" rel="noopener noreferrer">{{ page.title | escape }}</a></p>
-            {% endif %}
-
             {% if page.previous or page.next %}
             <nav class="post-nav" aria-label="上一篇和下一篇">
                 {% if page.previous %}
