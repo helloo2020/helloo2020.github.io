@@ -52,3 +52,7 @@
   .themes{grid-template-columns:repeat(2,minmax(0,1fr))}
   .theme-choice{min-height:93px}
 }
+.saved-post-location{width:100%;font-size:11px;color:#738579}
+.saved-post-location summary{cursor:pointer;width:max-content;max-width:100%;font-weight:500;color:#5b7460}
+.saved-post-location code{display:block;margin:6px 0;padding:7px;border-radius:5px;background:#f5f8f4;color:#415746;overflow-wrap:anywhere;user-select:text;line-height:1.45}
+.saved-post-row .saved-post-location button{margin-bottom:4px}

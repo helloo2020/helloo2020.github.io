@@ -28,12 +28,17 @@ test('publishes, updates, restores and unpublishes only the selected article', a
     git('remote', 'add', 'origin', remote);
     await fs.writeFile(path.join(repo, 'README.md'), 'test\n');
     git('add', '--', 'README.md'); git('commit', '-m', 'initial'); git('push', '-u', 'origin', 'master');
+    await fs.mkdir(path.join(repo, 'tools', 'article-studio'), { recursive: true });
+    await fs.writeFile(path.join(repo, 'tools', 'article-studio', 'layout.css'), 'body {}\n');
+    git('add', '--', 'tools/article-studio/layout.css'); git('commit', '-m', 'Simplify article studio layout and actions');
     await fs.mkdir(postsDir);
     await fs.mkdir(path.dirname(path.join(repo, imagePath)), { recursive: true });
     await fs.writeFile(path.join(repo, imagePath), 'test image');
     await fs.writeFile(file, content('初稿'));
     let post = await readStudioPost(filename, postsDir);
-    assert.equal((await listManagedPosts({ ...options, refresh: true })).posts[0].status, 'local');
+    const localListing = (await listManagedPosts({ ...options, refresh: true })).posts[0];
+    assert.equal(localListing.status, 'local');
+    assert.equal(localListing.localPath, file);
     await publishManagedPost(filename, post.revision, options);
     assert.equal(builds, 1);
     let catalog = await listManagedPosts({ ...options, refresh: true });
@@ -51,6 +56,7 @@ test('publishes, updates, restores and unpublishes only the selected article', a
     await deleteStudioPost(filename, post.revision, postsDir);
     catalog = await listManagedPosts({ ...options, refresh: true });
     assert.equal(catalog.posts[0].status, 'remote_only');
+    assert.equal(catalog.posts[0].localPath, '');
     assert.match((await readManagedPost(filename, options)).body, /^修改后的文章/);
     await restoreManagedPost(filename, options);
     assert.match((await readStudioPost(filename, postsDir)).body, /^修改后的文章/);

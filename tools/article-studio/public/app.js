@@ -2,6 +2,7 @@ import { marked } from './vendor/marked.esm.js';
 import { formatSelection } from './editor-actions.js';
 import { wechatTextAlign } from './wechat-style.js';
 import { extractBlogSource } from './blog-source.js';
+import { imageLabel, normalizeObsidian } from './image-sizing.js';
 
 const $ = id => document.getElementById(id);
 const themes = [
@@ -19,10 +20,6 @@ const example = `有时候我会想，生活的意义是什么？\n\n可能不�
 function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function toast(message, error = false) { const el = $('toast'); el.textContent = message; el.classList.toggle('error', error); el.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => el.hidden = true, 4500); }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function normalizeObsidian(md) {
-  return md.replace(/!\[\[([^\]]+)\]\]/g, (_, s) => { const [name, size] = s.split('|'); return `![${name}](<${name}>)`; })
-    .replace(/(?<!!)\[\[([^\]]+)\]\]/g, (_, s) => s.split('|').pop().replace(/\.md$/i, ''));
-}
 function safeUrl(value, image = false) {
   try { const url = new URL(value, location.href); return ['http:', 'https:'].includes(url.protocol) || (image && url.protocol === 'blob:') ? value : ''; } catch { return ''; }
 }
@@ -49,6 +46,23 @@ function sanitize(html) {
   walk(doc.body);
   return doc.body.innerHTML;
 }
+function applyImageSizes(container) {
+  for (const img of container.querySelectorAll('img')) {
+    const label = imageLabel(img.getAttribute('alt') || '');
+    if (label.width) {
+      img.alt = label.alt;
+      img.setAttribute('width', String(label.width));
+      if (label.height) img.setAttribute('height', String(label.height));
+    }
+    const next = img.nextSibling;
+    const match = next?.nodeType === Node.TEXT_NODE && next.textContent.match(/^\{: width="(\d{1,4})"(?: height="(\d{1,4})")? \}/);
+    if (match && Number(match[1]) > 0 && Number(match[1]) <= 3000 && (!match[2] || Number(match[2]) <= 3000)) {
+      img.setAttribute('width', match[1]);
+      if (match[2]) img.setAttribute('height', match[2]);
+      next.textContent = next.textContent.slice(match[0].length);
+    }
+  }
+}
 function renderThemes() {
   $('themes').innerHTML = themes.map(([id,name,description,bg,color]) => `<button class="theme-choice ${id === state.theme ? 'selected' : ''}" type="button" role="radio" aria-checked="${id === state.theme}" data-theme="${id}"><span class="theme-swatch" style="background:${bg};color:${color}">文</span><span class="theme-copy"><strong>${name}</strong><small>${description}</small></span><span class="check">✓</span></button>`).join('');
   $('themes').querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
@@ -62,9 +76,9 @@ function renderThemes() {
   }));
 }
 function footerHtml() {
-  const account = $('wechat-name').value.trim();
+  const account = $('wechat-name').value.trim().replace(/^公众号\s*[：:]?\s*/, '');
   const qr = state.qr ? `<img src="${fileUrl(state.qr)}" alt="公众号二维码">` : state.existingQrUrl ? `<img src="${escapeHtml(state.existingQrUrl)}" alt="公众号二维码">` : '';
-  return `<strong>关于我</strong><p>旅行、跑步、看书，也喜欢 AI 和数码</p><p>🌍 30+ 国家<br>🏅 半马 1h36 ｜ 全马 3h58</p><p><a href="https://scond.me">主页 scond.me</a></p>${account ? `<p>欢迎关注：${escapeHtml(account)}</p>` : ''}${qr}`;
+  return `<strong>关于我</strong><p>旅行、跑步、看书，也喜欢 AI 和数码</p><p>🌍 30+ 国家<br>🏅 半马 1h36 ｜ 全马 3h58</p><p><a href="https://scond.me">主页 scond.me</a></p>${account ? `<p>欢迎关注公众号：${escapeHtml(account)}</p>` : ''}${qr}`;
 }
 function render() {
   const title = $('title').value.trim() || '文章标题';
@@ -73,6 +87,7 @@ function render() {
   $('paper').style.setProperty('--article-font-size', `${$('font-size').value}px`);
   $('paper').className = `paper theme-${state.theme}${$('paper').classList.contains('mobile') ? ' mobile' : ''}`;
   $('preview-body').innerHTML = sanitize(marked.parse(md, { breaks: false, gfm: true }));
+  applyImageSizes($('preview-body'));
   $('preview-body').querySelectorAll('img').forEach(img => {
     const key = decodeRef(img.getAttribute('src') || '').replace(/^\.\//, '');
     const file = state.assets.get(key) || state.assets.get(key.split('/').pop());
@@ -257,7 +272,20 @@ async function refreshSavedPosts(checkRemote = false) {
         button.addEventListener('click', async () => { button.disabled = true; try { await action(); } finally { button.disabled = false; } });
         actions.append(button);
       }
-      row.append(name, actions);
+      row.append(name);
+      if (post.localPath) {
+        const location = document.createElement('details'); location.className = 'saved-post-location';
+        const summary = document.createElement('summary'); summary.textContent = '查看本地文件路径';
+        const filePath = document.createElement('code'); filePath.textContent = post.localPath;
+        const copyPath = document.createElement('button'); copyPath.type = 'button'; copyPath.textContent = '复制路径';
+        copyPath.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(post.localPath); toast('本地文件路径已复制'); }
+          catch { toast('复制失败，请选中上方路径手动复制', true); }
+        });
+        location.append(summary, filePath, copyPath);
+        row.append(location);
+      }
+      row.append(actions);
       return row;
     }));
     if (!posts.length) $('saved-post-list').textContent = '还没有通过本工具保存的博客文章。';
@@ -316,7 +344,7 @@ async function editSavedPost(filename) {
     $('font-size').value = String(post.fontSize);
     state.theme = post.style;
     $('footer').checked = Boolean(footer);
-    $('wechat-name').value = footer.match(/欢迎关注：([^\n]+)/)?.[1] || '';
+    $('wechat-name').value = footer.match(/欢迎关注公众号：([^\n]+)/)?.[1] || footer.match(/欢迎关注：(?:公众号)?([^\n]+)/)?.[1] || '';
     $('source-filename').value = suggestedSourceFilename(post.title);
     state.sourceFilenameEdited = false;
     $('editing-label').textContent = `正在编辑：${post.title}。更新会保留原文章文件名和链接。`;
@@ -343,6 +371,7 @@ async function showSavedPreview(filename) {
     const post = await getApi(`studio-post?filename=${encodeURIComponent(filename)}`);
     $('saved-heading').textContent = post.title;
     $('saved-body').innerHTML = sanitize(marked.parse(post.body, { breaks: false, gfm: true }));
+    applyImageSizes($('saved-body'));
     $('saved-paper').className = `paper theme-${post.style}`;
     $('saved-paper').style.setProperty('--article-font-size', `${post.fontSize}px`);
     $('saved-preview-title').textContent = post.title;
@@ -381,6 +410,7 @@ async function inlineCopyHtml() {
     if (source.tagName === 'H2') { target.style.fontSize = `${Math.min(22, Number($('font-size').value) + 3)}px`; target.style.lineHeight = '1.45'; target.style.marginTop = '1.6em'; target.style.marginBottom = '.65em'; }
     if (source.tagName === 'H3') { target.style.fontSize = `${Math.min(19, Number($('font-size').value) + 1)}px`; target.style.lineHeight = '1.45'; target.style.marginTop = '1.5em'; target.style.marginBottom = '.6em'; }
     target.removeAttribute('class'); target.removeAttribute('hidden'); target.removeAttribute('id');
+    if (source.tagName === 'IMG' && source.hasAttribute('width')) target.style.width = `${source.getAttribute('width')}px`;
   });
   if (!$('footer').checked) clone.querySelector('.article-footer')?.remove();
   await Promise.all([...clone.querySelectorAll('img')].map(async img => {

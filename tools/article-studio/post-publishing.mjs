@@ -73,7 +73,7 @@ export async function listManagedPosts({ repo, postsDir = path.join(repo, '_post
     const remote = online.get(filename);
     let status = here && remote ? here.revision === remote.revision && await remoteHasAssets(repo, remote) ? 'synced' : 'needs_sync' : here ? 'local' : 'remote_only';
     if (remoteError) status = 'unverified';
-    rows.push({ filename, title: here?.title || remote.title, date: here?.date || remote.date, savedAt: here?.savedAt || '', revision: here?.revision || remote.revision, remoteRevision: remote?.revision || '', localExists: Boolean(here), remoteExists: Boolean(remote), status, url: postUrl(filename) });
+    rows.push({ filename, title: here?.title || remote.title, date: here?.date || remote.date, savedAt: here?.savedAt || '', revision: here?.revision || remote.revision, remoteRevision: remote?.revision || '', localExists: Boolean(here), localPath: here ? path.join(postsDir, filename) : '', remoteExists: Boolean(remote), status, url: postUrl(filename) });
   }
   rows.sort((a, b) => (b.savedAt || b.date).localeCompare(a.savedAt || a.date));
   return { posts: rows, remoteError };
@@ -109,7 +109,8 @@ async function publishChecks(repo, filename, expectedRemote) {
   for (const commit of commits) {
     const files = (await runGit(repo, ['-c', 'core.quotePath=false', 'diff-tree', '--no-commit-id', '--name-only', '-r', commit.sha])).split('\n').filter(Boolean);
     const setupFile = file => ['.gitignore', 'AGENTS.md', 'README.md', '打开文章排版工具.command', '_config.yml', '_includes/head.html', '_layouts/post.html', 'css/main.css'].includes(file) || file.startsWith('tools/article-studio/') || file.startsWith('.ai/');
-    const setup = (commit.subject === 'feat: add local article studio' || commit.subject.startsWith('studio: ')) && files.every(setupFile);
+    // The first layout update predates the studio: commit naming convention.
+    const setup = (commit.subject === 'feat: add local article studio' || commit.subject.startsWith('studio: ') || commit.subject === 'Simplify article studio layout and actions') && files.every(setupFile);
     const target = (commit.subject === `post: ${subjectName}` || commit.subject === `post-unpublish: ${subjectName}`) && files.every(file => file === rel || file.startsWith(imageRoot));
     if (!setup && !target) throw new Error('本地已有其他未推送提交，为避免连带发布，请先处理 Git 同步');
   }

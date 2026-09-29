@@ -4,8 +4,9 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences, decodeRef } from './local-images.mjs';
+import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences } from './local-images.mjs';
 import { formatBlogSource } from './public/blog-source.js';
+import { normalizeImageLinks } from './blog-image-links.mjs';
 import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
 import { deleteStudioPost, readStudioPost } from './saved-posts.mjs';
 import { listManagedPosts, readManagedPost, restoreManagedPost, publishManagedPost, unpublishManagedPost } from './post-publishing.mjs';
@@ -50,14 +51,6 @@ function slugify(s) {
 }
 function validDate(date) { return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T12:00:00`)); }
 function yamlString(value) { return JSON.stringify(String(value)); }
-function normalizeImageLinks(markdown, imageMap) {
-  return markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)|!\[\[([^\]]+)\]\]/g, (all, alt, url, wiki) => {
-    const raw = (url || wiki).split('|')[0].trim().replace(/^<|>$/g, '');
-    const key = decodeRef(raw).replace(/^\.\//, '');
-    const target = imageMap.get(key) || imageMap.get(path.basename(key));
-    return target ? `![${alt || path.basename(key)}](${target})` : all;
-  });
-}
 async function savePost(data) {
   const title = String(data.title || '').trim();
   const body = String(data.markdown || '').trim();
@@ -116,7 +109,8 @@ async function savePost(data) {
   const source = formatBlogSource({ account: sourceAccount, publishedAt: sourcePublishedAt, url: sourceHref });
   const priorQr = existing?.body.match(/!\[公众号二维码\]\((\/img\/article-studio\/[^)]+)\)/)?.[1] || null;
   const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : priorQr;
-  const footer = data.footer ? `\n\n---\n\n**关于我**  \n旅行、跑步、看书，也喜欢 AI 和数码  \n🌍 30+ 国家 · 🏅 半马 1h36 ｜ 全马 3h58  \n[主页 scond.me](https://scond.me)\n${data.wechatName ? `\n欢迎关注：${String(data.wechatName).trim().slice(0, 60)}\n` : ''}${qrPath ? `\n![公众号二维码](${qrPath})\n` : ''}` : '';
+  const wechatName = String(data.wechatName || '').trim().replace(/^公众号\s*[：:]?\s*/, '').slice(0, 60);
+  const footer = data.footer ? `\n\n---\n\n**关于我**  \n旅行、跑步、看书，也喜欢 AI 和数码  \n🌍 30+ 国家 · 🏅 半马 1h36 ｜ 全马 3h58  \n[主页 scond.me](https://scond.me)\n${wechatName ? `\n欢迎关注公众号：${wechatName}\n` : ''}${qrPath ? `\n![公众号二维码](${qrPath})\n` : ''}` : '';
   const frontmatter = [
     '---', 'layout: post', `title: ${yamlString(title)}`, `date: ${date}`, 'author: Scond', `article_style: ${style}`, `article_font_size: ${fontSize}`, 'article_studio: true',
     'tags:', ...tags.map(t => `  - ${yamlString(t)}`), '---', ''

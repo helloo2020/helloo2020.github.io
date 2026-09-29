@@ -19,11 +19,12 @@ test('locates original folder and saves an edited copy with working image paths'
     await fs.writeFile(path.join(assets, '旧图.png'), png);
     assert.deepEqual(await listSourceFolders(root), ['.', '02-草稿']);
     assert.deepEqual(await locateSourceFolder('原稿.md', root), { folder: '02-草稿', matches: ['02-草稿'] });
-    const input = { folder: '02-草稿', filename: '原稿-排版版.md', markdown: '# 新稿\n\n![旧图](../Assets/旧图.png)\n\n![新图](new.png)', assets: [{ name: 'new.png', type: 'image/png', data: png.toString('base64') }] };
+    const input = { folder: '02-草稿', filename: '原稿-排版版.md', markdown: '# 新稿\n\n![旧图](../Assets/旧图.png)\n\n![[旧图.png|482]]\n\n![新图](new.png)', assets: [{ name: 'new.png', type: 'image/png', data: png.toString('base64') }] };
     const first = await saveSourceDraft(input, { root, blogImages });
     assert.equal(first.filename, '原稿-排版版.md');
     const saved = await fs.readFile(first.path, 'utf8');
     assert.match(saved, /!\[旧图\]\(<\.\.\/Assets\/旧图\.png>\)/);
+    assert.match(saved, /!\[旧图\.png\|482\]\(<\.\.\/Assets\/旧图\.png>\)/);
     assert.match(saved, /!\[新图\]\(<\.\.\/Assets\/new\.png>\)/);
     assert.deepEqual(await fs.readFile(path.join(draft, '原稿.md'), 'utf8'), '# 原稿\n');
     assert.deepEqual(await fs.readFile(path.join(assets, 'new.png')), png);

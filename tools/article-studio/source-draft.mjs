@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { OBSIDIAN_ROOT, resolveImages, imageReferences } from './local-images.mjs';
+import { imageLabel } from './public/image-sizing.js';
 
 const imageTypes = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
 const within = (root, file) => file === root || file.startsWith(root + path.sep);
@@ -39,7 +40,9 @@ function rewriteImages(markdown, map) {
     const raw = cleanRef((target || wiki).split('|')[0].trim().replace(/^<|>$/g, '')).replace(/^\.\//, '');
     const replacement = map.get(raw);
     if (!replacement) return all;
-    const name = alt || path.basename(raw);
+    const wikiSize = wiki?.includes('|') ? wiki.split('|').at(-1) : '';
+    const sized = imageLabel(`${path.basename(raw)}|${wikiSize}`);
+    const name = alt || (sized.width ? `${sized.alt}|${sized.width}${sized.height ? `x${sized.height}` : ''}` : path.basename(raw));
     return `![${name}](<${replacement}>)`;
   });
 }
