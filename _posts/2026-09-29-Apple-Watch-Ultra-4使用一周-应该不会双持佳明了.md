@@ -69,6 +69,9 @@ tags:
 
 不过，唯一还未经过验证的是，寒冷的冬天，心率的数据是否准确，可能需要等到接下来几个月才能知道了
 
+\*原文链接：[Apple Watch Ultra 4使用一周，应该不会双持佳明了](https://mp.weixin.qq.com/s/KBWB7uU5zCP1ne957LBO3w)
+{: .post-source }
+
 ---
 
 **关于我**  
