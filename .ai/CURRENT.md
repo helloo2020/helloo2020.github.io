@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-09-29 Google 收录排查：确认站点为 Jekyll/GitHub Pages，正式域名和文章 canonical 配置正确；原仓库无 sitemap.xml、robots.txt 或 sitemap 插件。新增由 Jekyll 在每次构建时按 `site.posts` 自动生成的 sitemap 和允许抓取、声明 sitemap 地址的 robots.txt。本地构建通过，生成 23 篇文章及首页 URL；目标文章在 sitemap 中，所有 URL 均为 `https://blog.scond.me`，目标页没有 noindex 且 canonical 正确。线上地址因本机 DNS 无法解析且尚未推送，待发布后验证。
+
 2026-09-28：本地文章排版工具已实现。浏览器验证了六种版式、可选结尾、Obsidian Markdown 导入与图片预览、本地保存、HTML/纯文本剪贴板，以及 390px 手机宽度无页面溢出。带图片的测试文章通过 Jekyll 构建，测试文件已清理。`node --check`、`git diff --check` 与 Jekyll 构建通过。线上博客未发布；Git 推送路径和公众号后台实际粘贴效果尚未做生产验证。
 
 当前工作：修复重复双击启动脚本时误报端口占用。已验证首次启动、重复打开和端口占用提示；测试服务清理后交付。
