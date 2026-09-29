@@ -260,7 +260,7 @@ async function refreshSavedPosts(checkRemote = false) {
       badge.textContent = ({ local: '仅本地', synced: '已同步 GitHub', needs_sync: '有待发布修改', remote_only: '线上仍在，本地已删', unverified: '线上状态未核实' })[post.status] || '状态未知';
       name.append(date, badge);
       const actions = document.createElement('div'); actions.className = 'saved-post-actions';
-      const choices = [['预览', () => showSavedPreview(post.filename)]];
+      const choices = post.localExists ? [['博客预览', () => showSavedPreview(post)]] : [];
       if (post.localExists) choices.push(['编辑', () => editSavedPost(post.filename)]);
       else choices.push(['恢复本地', () => restoreSavedPost(post)]);
       if (post.localExists && post.status !== 'synced') choices.push([post.remoteExists ? '更新线上' : '发布', () => publishSavedPost(post)]);
@@ -368,31 +368,31 @@ async function deleteSavedPost(post) {
     await refreshSavedPosts();
   } catch (error) { toast(`删除失败：${error.message}`, true); }
 }
-async function showSavedPreview(filename) {
+async function showSavedPreview(post) {
+  const dialog = $('saved-preview');
+  const frame = $('saved-blog-frame');
+  const loading = $('saved-preview-loading');
+  const open = $('saved-preview-open');
+  $('saved-preview-title').textContent = post.title;
+  $('saved-preview-note').textContent = `${post.date} · 本地已保存版本，不会执行发布`;
+  loading.textContent = '正在生成博客页面…';
+  loading.hidden = false;
+  frame.hidden = true;
+  frame.removeAttribute('src');
+  open.hidden = true;
+  open.removeAttribute('href');
+  dialog.showModal();
   try {
-    const post = await getApi(`studio-post?filename=${encodeURIComponent(filename)}`);
-    $('saved-heading').textContent = post.title;
-    const extracted = extractBlogSource(post.body);
-    $('saved-body').innerHTML = sanitize(marked.parse(extracted.body, { breaks: false, gfm: true }));
-    const source = post.source || extracted.source;
-    const sourceLine = $('saved-source');
-    sourceLine.hidden = !source;
-    if (source) {
-      sourceLine.replaceChildren(document.createTextNode(`原文发布在公众号 ${source.account}：`));
-      const link = document.createElement('a');
-      link.href = source.url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.textContent = post.title;
-      sourceLine.append(link);
-    }
-    applyImageSizes($('saved-body'));
-    $('saved-paper').className = `paper theme-${post.style}`;
-    $('saved-paper').style.setProperty('--article-font-size', `${post.fontSize}px`);
-    $('saved-preview-title').textContent = post.title;
-    $('saved-preview-note').textContent = `${post.date} · 本地效果预览，不会执行发布`;
-    $('saved-preview').showModal();
-  } catch (error) { toast(`预览失败：${error.message}`, true); }
+    const result = await getApi(`blog-preview?filename=${encodeURIComponent(post.filename)}`);
+    if (!dialog.open) return;
+    frame.onload = () => { loading.hidden = true; frame.hidden = false; };
+    frame.src = result.url;
+    open.href = result.url;
+    open.hidden = false;
+  } catch (error) {
+    loading.textContent = `预览失败：${error.message}`;
+    $('saved-preview-note').textContent = '本地博客构建未完成';
+  }
 }
 async function publish() {
   if (!state.saved) return;

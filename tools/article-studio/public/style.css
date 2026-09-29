@@ -56,7 +56,14 @@
 .saved-post-location summary{cursor:pointer;width:max-content;max-width:100%;font-weight:500;color:#5b7460}
 .saved-post-location code{display:block;margin:6px 0;padding:7px;border-radius:5px;background:#f5f8f4;color:#415746;overflow-wrap:anywhere;user-select:text;line-height:1.45}
 .saved-post-row .saved-post-location button{margin-bottom:4px}
-.saved-source{margin:28px 0 0;padding-top:10px;border-top:1px solid #e5ebe5;color:#78867a;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
-.saved-source a{color:inherit;text-decoration:underline;text-decoration-color:#c9d3ca;text-underline-offset:3px}
-#saved-body img:not([width]){max-width:min(100%,520px)}
-#saved-body img[alt="公众号二维码"]{max-width:min(100%,140px)}
+.saved-preview[open]{display:flex;flex-direction:column;width:min(1200px,96vw);height:min(92vh,920px);max-height:92vh}
+.saved-preview-head{flex:none}
+.saved-preview-actions{display:flex;align-items:center;gap:12px;flex:none}
+.saved-preview-actions a{color:#52775a;font-size:12px;text-decoration:none}
+.saved-preview-actions a:hover{text-decoration:underline}
+.saved-preview-scroll{flex:1;min-height:0;max-height:none;overflow:hidden;padding:0!important;position:relative;background:#fff}
+.saved-preview-scroll iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+.saved-preview-scroll iframe[hidden],.saved-preview-actions a[hidden]{display:none}
+.saved-preview-loading{position:absolute;inset:0;display:grid;place-items:center;margin:0!important;color:#718174;font-size:13px;background:#f7f9f6}
+.saved-preview-loading[hidden]{display:none}
+@media(max-width:600px){.saved-preview[open]{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}.saved-preview-head{padding:10px 12px}.saved-preview-actions{gap:8px}.saved-preview-actions a{font-size:11px}}

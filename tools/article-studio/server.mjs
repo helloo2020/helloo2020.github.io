@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences } from './local-images.mjs';
 import { normalizeImageLinks } from './blog-image-links.mjs';
+import { blogPreviewPath, startBlogPreview } from './blog-preview.mjs';
 import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
 import { deleteStudioPost, readStudioPost } from './saved-posts.mjs';
 import { listManagedPosts, readManagedPost, restoreManagedPost, publishManagedPost, unpublishManagedPost } from './post-publishing.mjs';
@@ -19,6 +20,7 @@ const MAX_BODY = 16 * 1024 * 1024;
 const allowedExt = new Map([['image/png', '.png'], ['image/jpeg', '.jpg'], ['image/webp', '.webp'], ['image/gif', '.gif']]);
 const expectedRemote = /^(?:https:\/\/github\.com\/|git@github\.com:)helloo2020\/helloo2020\.github\.io(?:\.git)?$/;
 const publishing = { repo: blog, postsDir: posts, expectedRemote, preflight: buildJekyll };
+let previewServer;
 
 function json(res, status, payload) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -32,18 +34,28 @@ function requestBody(req) {
     req.on('error', reject);
   });
 }
-async function buildJekyll() {
+async function buildJekyll({ preview = false } = {}) {
   const vendor = path.join(blog, '.jekyll-vendor');
   const executable = path.join(vendor, 'bin', 'jekyll');
   if (!(await fs.stat(executable).catch(() => null))?.isFile()) throw new Error('找不到本机 Jekyll 构建工具，发布前请检查博客环境');
   await new Promise((resolve, reject) => {
-    const child = spawn(executable, ['build', '--quiet'], { cwd: blog, env: { ...process.env, GEM_HOME: vendor, GEM_PATH: vendor }, stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(executable, ['build', '--quiet'], { cwd: blog, env: { ...process.env, GEM_HOME: vendor, GEM_PATH: vendor, ...(preview ? { JEKYLL_ENV: 'article_studio_preview' } : {}) }, stdio: ['ignore', 'ignore', 'pipe'] });
     let err = '';
     const timer = setTimeout(() => child.kill(), 120000);
     child.stderr.on('data', part => err += part);
     child.on('error', reject);
     child.on('close', code => { clearTimeout(timer); code === 0 ? resolve() : reject(new Error(`博客构建失败：${err.trim() || `退出码 ${code}`}`)); });
   });
+}
+async function previewBlogPost(filename) {
+  const post = await readStudioPost(filename, posts);
+  await buildJekyll({ preview: true });
+  const pathname = blogPreviewPath(filename);
+  const output = path.join(blog, '_site', decodeURIComponent(pathname), 'index.html');
+  if (!(await fs.stat(output).catch(() => null))?.isFile()) throw new Error('博客构建完成，但找不到这篇文章的页面');
+  previewServer ||= startBlogPreview(path.join(blog, '_site')).catch(error => { previewServer = null; throw error; });
+  const { baseUrl } = await previewServer;
+  return { url: `${baseUrl}${pathname}`, title: post.title, date: post.date };
 }
 function slugify(s) {
   return s.trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 70);
@@ -145,6 +157,7 @@ http.createServer(async (req, res) => {
     if (req.url === '/api/save-source' && req.method === 'POST') return json(res, 200, await saveSourceDraft(await requestBody(req), { root: OBSIDIAN_ROOT, blogImages: path.join(blog, 'img') }));
     if (req.url?.startsWith('/api/studio-posts') && req.method === 'GET') return json(res, 200, await listManagedPosts({ ...publishing, refresh: new URL(req.url, `http://${host}:${port}`).searchParams.get('refresh') === '1' }));
     if (req.url?.startsWith('/api/studio-post?') && req.method === 'GET') return json(res, 200, await readManagedPost(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename'), publishing));
+    if (req.url?.startsWith('/api/blog-preview?') && req.method === 'GET') return json(res, 200, await previewBlogPost(new URL(req.url, `http://${host}:${port}`).searchParams.get('filename')));
     if (req.url === '/api/restore-studio-post' && req.method === 'POST') return json(res, 200, await restoreManagedPost((await requestBody(req)).filename, publishing));
     if (req.url === '/api/delete-studio-post' && req.method === 'POST') {
       const data = await requestBody(req);

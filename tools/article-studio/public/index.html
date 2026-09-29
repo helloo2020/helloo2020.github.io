@@ -95,16 +95,16 @@
       <p class="settings-note">保存会在本地博客仓库生成文章。点击顶部“更多操作”中的“发布到线上博客”，或清单中的“发布”，才会提交并推送到 GitHub。</p>
     </aside>
     <section class="preview-pane" aria-labelledby="preview-title">
-      <div class="pane-head preview-head"><h2 id="preview-title">预览</h2><div class="view-switch" role="group" aria-label="预览宽度"><button id="desktop-view" class="active">桌面</button><button id="mobile-view">手机</button></div></div>
+      <div class="pane-head preview-head"><h2 id="preview-title">公众号排版预览</h2><div class="view-switch" role="group" aria-label="预览宽度"><button id="desktop-view" class="active">桌面</button><button id="mobile-view">手机</button></div></div>
       <div class="preview-scroll"><article id="paper" class="paper theme-sage"><h1 id="preview-heading"></h1><div id="preview-body" class="article-body"></div><section id="preview-footer" class="article-footer" hidden></section></article></div>
       <div class="preview-foot"><span id="status">仅在本机编辑</span><span>公众号效果以粘贴后预览为准</span></div>
     </section>
   </main>
   <dialog id="saved-preview" class="saved-preview" aria-labelledby="saved-preview-title">
-    <div class="saved-preview-head"><div><h2 id="saved-preview-title">博客文章预览</h2><small id="saved-preview-note">本地预览 · 不会执行发布</small></div><button id="close-saved-preview" type="button">关闭</button></div>
-    <div class="saved-preview-scroll"><article id="saved-paper" class="paper theme-sage"><h1 id="saved-heading"></h1><div id="saved-body" class="article-body"></div><p id="saved-source" class="saved-source" hidden></p></article></div>
+    <div class="saved-preview-head"><div><h2 id="saved-preview-title">博客页面预览</h2><small id="saved-preview-note">本地构建 · 不会执行发布</small></div><div class="saved-preview-actions"><a id="saved-preview-open" href="#" target="_blank" rel="noopener noreferrer" hidden>在新标签页打开</a><button id="close-saved-preview" type="button">关闭</button></div></div>
+    <div class="saved-preview-scroll"><p id="saved-preview-loading" class="saved-preview-loading" role="status">正在生成博客页面…</p><iframe id="saved-blog-frame" title="本地博客页面预览" hidden></iframe></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script type="module" src="/app.js?v=20260929-source-footnote"></script>
+  <script type="module" src="/app.js?v=20260929-blog-preview"></script>
 </body>
 </html>

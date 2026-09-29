@@ -340,6 +340,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
   max-width: 44rem;
   margin: 0 auto;
 }
+.post-side { display: none; }
 
 .post-content,
 .prose {
@@ -747,6 +748,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 }
 
 @media (min-width: 1100px) {
+  .toc-mobile { display: none; }
   .post-grid {
     display: grid;
     grid-template-columns: minmax(0, 44rem) 14rem;
@@ -760,6 +762,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
     grid-column: 2;
     grid-row: 1;
   }
+  .post-side:not([hidden]) { display: block; }
   .post-main { grid-column: 1; grid-row: 1; }
 }
 

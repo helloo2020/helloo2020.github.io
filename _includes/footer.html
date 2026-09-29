@@ -1,9 +1,10 @@
 <footer class="site-footer">
     <div class="wrap">
-        <p class="footer-copy">Copyright © {{ site.title }}· <span data-blog-visit-count>累计访问加载中</span></p>
+        <p class="footer-copy">Copyright © {{ site.title }}· {% if jekyll.environment == 'article_studio_preview' %}本地预览{% else %}<span data-blog-visit-count>累计访问加载中</span>{% endif %}</p>
     </div>
 </footer>
 
+{% unless jekyll.environment == 'article_studio_preview' %}
 <script src="https://scond.me/visit-counter.js"
         data-site="blog.scond.me"
         data-endpoint="https://scond.me/api/visit"
@@ -32,3 +33,4 @@
     }
 </script>
 {% endif %}
+{% endunless %}
