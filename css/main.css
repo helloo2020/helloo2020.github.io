@@ -403,6 +403,9 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 /* 竖版手机/手表截屏：限制宽度，避免单张长图占满整屏 */
 .prose img.img-sm { width: 100%; max-width: 320px; }
 .prose img.img-md { width: 100%; max-width: 430px; }
+/* 排版工具文章：未指定宽度的配图使用舒适的阅读宽度，尊重已有的图片宽度。 */
+.post-content[class*="article-style-"] img:not([width]) { max-width: min(100%, 520px); }
+.post-content[class*="article-style-"] img[alt="公众号二维码"] { max-width: min(100%, 140px); }
 .prose ul,
 .prose ol {
   padding-left: 1.4rem;

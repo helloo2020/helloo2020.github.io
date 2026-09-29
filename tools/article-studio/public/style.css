@@ -58,3 +58,5 @@
 .saved-post-row .saved-post-location button{margin-bottom:4px}
 .saved-source{margin:28px 0 0;padding-top:10px;border-top:1px solid #e5ebe5;color:#78867a;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 .saved-source a{color:inherit;text-decoration:underline;text-decoration-color:#c9d3ca;text-underline-offset:3px}
+#saved-body img:not([width]){max-width:min(100%,520px)}
+#saved-body img[alt="公众号二维码"]{max-width:min(100%,140px)}
