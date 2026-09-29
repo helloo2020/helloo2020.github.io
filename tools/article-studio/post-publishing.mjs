@@ -108,7 +108,7 @@ async function publishChecks(repo, filename, expectedRemote) {
   const subjectName = filename.slice(11, -3);
   for (const commit of commits) {
     const files = (await runGit(repo, ['-c', 'core.quotePath=false', 'diff-tree', '--no-commit-id', '--name-only', '-r', commit.sha])).split('\n').filter(Boolean);
-    const setupFile = file => ['.gitignore', 'AGENTS.md', 'README.md', '打开文章排版工具.command', '_config.yml', '_includes/head.html', '_layouts/post.html', 'css/main.css'].includes(file) || file.startsWith('tools/article-studio/') || file.startsWith('.ai/');
+    const setupFile = file => ['.gitignore', 'AGENTS.md', 'README.md', '打开文章排版工具.command', '_config.yml', '_includes/head.html', '_layouts/default.html', '_layouts/post.html', 'css/main.css', 'js/main.js', 'sw.js'].includes(file) || file.startsWith('tools/article-studio/') || file.startsWith('.ai/');
     // The first layout update predates the studio: commit naming convention.
     const setup = (commit.subject === 'feat: add local article studio' || commit.subject.startsWith('studio: ') || commit.subject === 'Simplify article studio layout and actions') && files.every(setupFile);
     const target = (commit.subject === `post: ${subjectName}` || commit.subject === `post-unpublish: ${subjectName}`) && files.every(file => file === rel || file.startsWith(imageRoot));

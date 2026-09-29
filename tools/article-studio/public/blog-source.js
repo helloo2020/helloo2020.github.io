@@ -24,3 +24,13 @@ export function formatBlogSource({ account, publishedAt, url }) {
   const time = publishedAt ? `　|　发布时间：${publishedAt.replace('T', ' ')}` : '';
   return `> 公众号：${name}${time}\n\n[原文公众号链接](${url})`;
 }
+
+export function sourceFromMeta(meta) {
+  const url = String(meta.source_url || '');
+  if (!/^https:\/\/mp\.weixin\.qq\.com\/s(?:\/|\?)[^\s<>]*$/.test(url)) return null;
+  return {
+    account: String(meta.source_account || 'Scond'),
+    publishedAt: String(meta.source_published_at || ''),
+    url
+  };
+}

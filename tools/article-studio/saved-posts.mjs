@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { sourceFromMeta } from './public/blog-source.js';
 
 const revisionOf = content => createHash('sha256').update(content).digest('hex');
 
@@ -21,6 +22,7 @@ export function parseStudioPost(content, filename) {
     style: ['sage','classic','modern','literary','warm','minimal'].includes(meta.article_style) ? meta.article_style : 'sage',
     fontSize: [14,16,18,20,22].includes(Number(meta.article_font_size)) ? Number(meta.article_font_size) : 16,
     tags: [...match[1].matchAll(/^\s+-\s+(.+)$/gm)].map(([, value]) => { try { return String(JSON.parse(value)); } catch { return value.replace(/^['"]|['"]$/g, ''); } }),
+    source: sourceFromMeta(meta),
     body: content.slice(match[0].length).trim(),
     revision: revisionOf(content)
   };

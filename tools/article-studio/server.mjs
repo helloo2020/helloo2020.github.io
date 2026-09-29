@@ -5,7 +5,6 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { OBSIDIAN_ROOT, DEFAULT_IMAGES, resolveImages, readGrantedImage, imageReferences } from './local-images.mjs';
-import { formatBlogSource } from './public/blog-source.js';
 import { normalizeImageLinks } from './blog-image-links.mjs';
 import { listSourceFolders, locateSourceFolder, saveSourceDraft } from './source-draft.mjs';
 import { deleteStudioPost, readStudioPost } from './saved-posts.mjs';
@@ -106,13 +105,13 @@ async function savePost(data) {
   const missingLocal = bodyRefs.filter(ref => !/^https?:\/\//i.test(ref) && !ref.startsWith('/img/') && !imageMap.has(ref.replace(/^\.\//, '')) && !imageMap.has(path.basename(ref)));
   if (missingLocal.length) throw new Error(`这些本地图片尚未添加：${missingLocal.slice(0, 3).join('、')}`);
   const normalized = normalizeImageLinks(body, imageMap);
-  const source = formatBlogSource({ account: sourceAccount, publishedAt: sourcePublishedAt, url: sourceHref });
   const priorQr = existing?.body.match(/!\[公众号二维码\]\((\/img\/article-studio\/[^)]+)\)/)?.[1] || null;
   const qrPath = data.qrImageName ? imageMap.get(String(data.qrImageName)) : priorQr;
   const wechatName = String(data.wechatName || '').trim().replace(/^公众号\s*[：:]?\s*/, '').slice(0, 60);
   const footer = data.footer ? `\n\n---\n\n**关于我**  \n旅行、跑步、看书，也喜欢 AI 和数码  \n🌍 30+ 国家 · 🏅 半马 1h36 ｜ 全马 3h58  \n[主页 scond.me](https://scond.me)\n${wechatName ? `\n欢迎关注公众号：${wechatName}\n` : ''}${qrPath ? `\n![公众号二维码](${qrPath})\n` : ''}` : '';
   const frontmatter = [
     '---', 'layout: post', `title: ${yamlString(title)}`, `date: ${date}`, 'author: Scond', `article_style: ${style}`, `article_font_size: ${fontSize}`, 'article_studio: true',
+    ...(sourceHref ? [`source_account: ${yamlString(sourceAccount)}`, `source_url: ${yamlString(sourceHref)}`, ...(sourcePublishedAt ? [`source_published_at: ${yamlString(sourcePublishedAt)}`] : [])] : []),
     'tags:', ...tags.map(t => `  - ${yamlString(t)}`), '---', ''
   ].join('\n');
   await fs.mkdir(posts, { recursive: true });
@@ -120,7 +119,7 @@ async function savePost(data) {
   const tempPath = existing ? path.join(posts, `.${filename}.${randomUUID()}.tmp`) : null;
   try {
     for (const asset of assetPaths) await fs.writeFile(asset.file, asset.bytes, { flag: 'wx' });
-    const content = `${frontmatter}${source ? `${source}\n\n` : ''}${normalized}${footer}\n`;
+    const content = `${frontmatter}${normalized}${footer}\n`;
     if (existing) {
       await fs.writeFile(tempPath, content, { flag: 'wx' });
       await fs.rename(tempPath, filepath);

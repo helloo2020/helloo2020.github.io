@@ -24,12 +24,16 @@
   var tocMobileList = document.getElementById('toc-mobile-list');
   if (content && tocDesktop && tocDesktopList && tocMobile && tocMobileList) {
     var headings = Array.prototype.filter.call(
-      content.querySelectorAll('h2, h3'),
+      content.querySelectorAll('h1, h2, h3'),
       function (h) { return h.id; }
     );
     if (headings.length > 1) {
+      var firstLevel = Math.min.apply(null, headings.map(function (heading) {
+        return Number(heading.tagName.slice(1));
+      }));
       headings.forEach(function (heading) {
         var li = document.createElement('li');
+        li.className = 'toc-depth-' + (Number(heading.tagName.slice(1)) - firstLevel);
         var a = document.createElement('a');
         a.href = '#' + heading.id;
         a.textContent = heading.textContent;

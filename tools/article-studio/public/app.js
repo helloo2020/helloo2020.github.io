@@ -1,7 +1,7 @@
 import { marked } from './vendor/marked.esm.js';
 import { formatSelection } from './editor-actions.js';
 import { wechatTextAlign } from './wechat-style.js';
-import { extractBlogSource } from './blog-source.js';
+import { extractBlogSource, sourceFromMeta } from './blog-source.js';
 import { imageLabel, normalizeObsidian } from './image-sizing.js';
 
 const $ = id => document.getElementById(id);
@@ -152,11 +152,12 @@ function parseFrontmatter(text, filename) {
   $('title').value = meta.title || (heading ? heading[1] : filename.replace(/\.md$/i, ''));
   if (heading) body = body.slice(heading[0].length);
   const extracted = extractBlogSource(body.trim());
+  const source = sourceFromMeta(meta) || extracted.source;
   $('markdown').value = extracted.body.trim();
-  $('source-account').value = extracted.source?.account || 'Scond';
-  $('source-published').value = extracted.source?.publishedAt || '';
-  $('source-url').value = extracted.source?.url || '';
-  $('blog-source').open = Boolean(extracted.source);
+  $('source-account').value = source?.account || 'Scond';
+  $('source-published').value = source?.publishedAt || '';
+  $('source-url').value = source?.url || '';
+  $('blog-source').open = Boolean(source);
   if (['14','16','18','20','22'].includes(meta.article_font_size)) $('font-size').value = meta.article_font_size;
   if (meta.date && /^\d{4}-\d{2}-\d{2}$/.test(meta.date)) $('date').value = meta.date;
   $('source-filename').value = suggestedSourceFilename(filename.replace(/\.(?:md|markdown)$/i, ''));
@@ -325,6 +326,7 @@ async function editSavedPost(filename) {
     const footer = footerAt < 0 ? '' : post.body.slice(footerAt + footerMark.length);
     const article = footerAt < 0 ? post.body : post.body.slice(0, footerAt);
     const extracted = extractBlogSource(article.trim());
+    const source = post.source || extracted.source;
     state.assets.clear(); state.localAssets.clear(); state.qr = null;
     state.existingQrUrl = footer.match(/!\[公众号二维码\]\((\/img\/article-studio\/[^)]+)\)/)?.[1] || '';
     $('qr').value = '';
@@ -337,10 +339,10 @@ async function editSavedPost(filename) {
     $('date').disabled = true;
     $('tags').value = post.tags.join('，');
     $('markdown').value = extracted.body;
-    $('source-account').value = extracted.source?.account || 'Scond';
-    $('source-published').value = extracted.source?.publishedAt || '';
-    $('source-url').value = extracted.source?.url || '';
-    $('blog-source').open = Boolean(extracted.source);
+    $('source-account').value = source?.account || 'Scond';
+    $('source-published').value = source?.publishedAt || '';
+    $('source-url').value = source?.url || '';
+    $('blog-source').open = Boolean(source);
     $('font-size').value = String(post.fontSize);
     state.theme = post.style;
     $('footer').checked = Boolean(footer);
@@ -370,7 +372,20 @@ async function showSavedPreview(filename) {
   try {
     const post = await getApi(`studio-post?filename=${encodeURIComponent(filename)}`);
     $('saved-heading').textContent = post.title;
-    $('saved-body').innerHTML = sanitize(marked.parse(post.body, { breaks: false, gfm: true }));
+    const extracted = extractBlogSource(post.body);
+    $('saved-body').innerHTML = sanitize(marked.parse(extracted.body, { breaks: false, gfm: true }));
+    const source = post.source || extracted.source;
+    const sourceLine = $('saved-source');
+    sourceLine.hidden = !source;
+    if (source) {
+      sourceLine.replaceChildren(document.createTextNode(`原文发布在公众号 ${source.account}：`));
+      const link = document.createElement('a');
+      link.href = source.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = post.title;
+      sourceLine.append(link);
+    }
     applyImageSizes($('saved-body'));
     $('saved-paper').className = `paper theme-${post.style}`;
     $('saved-paper').style.setProperty('--article-font-size', `${post.fontSize}px`);

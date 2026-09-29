@@ -56,3 +56,5 @@
 .saved-post-location summary{cursor:pointer;width:max-content;max-width:100%;font-weight:500;color:#5b7460}
 .saved-post-location code{display:block;margin:6px 0;padding:7px;border-radius:5px;background:#f5f8f4;color:#415746;overflow-wrap:anywhere;user-select:text;line-height:1.45}
 .saved-post-row .saved-post-location button{margin-bottom:4px}
+.saved-source{margin:28px 0 0;padding-top:10px;border-top:1px solid #e5ebe5;color:#78867a;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.saved-source a{color:inherit;text-decoration:underline;text-decoration-color:#c9d3ca;text-underline-offset:3px}
