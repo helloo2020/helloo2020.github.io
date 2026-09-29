@@ -6,13 +6,12 @@ author: Scond
 article_style: sage
 article_font_size: 16
 article_studio: true
+source_account: "Scond"
+source_url: "https://mp.weixin.qq.com/s/KBWB7uU5zCP1ne957LBO3w"
+source_published_at: "2026-09-29T00:00"
 tags:
   - "跑步"
 ---
-> 公众号：Scond　|　发布时间：2026-09-29 00:00
-
-[原文公众号链接](https://mp.weixin.qq.com/s/KBWB7uU5zCP1ne957LBO3w)
-
 上一篇写到，去年冬天备战广州全马时，Apple Watch 的跑步心率经常失真。有时刚起跑就飙到 170 多，有时跑到一半干脆没了数据。后来我买了一块佳明 255，平时戴 Apple Watch，跑步时右手再戴佳明
 ![IMG_7430.jpeg](/img/article-studio/2026-09-29-Apple-Watch-Ultra-4使用一周-应该不会双持佳明了/02-IMG-7430.jpg){: width="482" }
 
