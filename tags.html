@@ -4,7 +4,12 @@ title: 文章
 description: keep hungry keep foolish
 ---
 
-<div class="filter-pills" role="group" aria-label="按标签筛选">
+{% assign posts_by_year = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}
+<div class="archive-filter-modes" role="group" aria-label="筛选维度" hidden>
+    <button type="button" data-filter-mode="tag" aria-pressed="true">标签</button>
+    <button type="button" data-filter-mode="year" aria-pressed="false">年份</button>
+</div>
+<div id="tag-filters" class="filter-pills" role="group" aria-label="按标签筛选">
     <button type="button" class="pill is-active" data-filter="全部">全部</button>
     {% assign tags_sorted = "" | split: "" %}
     {% for tag in site.tags %}
@@ -30,17 +35,25 @@ description: keep hungry keep foolish
     {% endfor %}
 </div>
 
-{% assign posts_by_year = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}
+<div id="year-filters" class="filter-pills" role="group" aria-label="按年份筛选" hidden>
+    <button type="button" class="pill is-active" data-year-filter="全部">全部</button>
+    {% for year_group in posts_by_year %}
+    <button type="button" class="pill" data-year-filter="{{ year_group.name }}">{{ year_group.name }}</button>
+    {% endfor %}
+</div>
+
 {% for year_group in posts_by_year %}
-<section class="archive-year">
+<section class="archive-year" data-year="{{ year_group.name }}">
     <h2>{{ year_group.name }} 年</h2>
     {% for post in year_group.items %}
     <article class="archive-item" data-tags="{{ post.tags | join: ' ' }}">
         <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%m月%d日" }}</time>
+        <div class="archive-entry">
         <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
         <span class="archive-tags" aria-hidden="true">
             {% for tag in post.tags %}<span class="tag" data-tag="{{ tag }}">{{ tag }}</span>{% endfor %}
         </span>
+        </div>
     </article>
     {% endfor %}
 </section>

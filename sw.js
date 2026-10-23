@@ -1,4 +1,4 @@
-const PRECACHE = 'precache-v10-navigation';
+const PRECACHE = 'precache-v11-scroll';
 const RUNTIME = 'runtime';
 const HOSTNAME_WHITELIST = [self.location.hostname];
 
@@ -17,7 +17,7 @@ const shouldRedirect = (req) =>
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(PRECACHE).then((cache) =>
-      cache.addAll(['/offline.html', '/css/main.css?v=20261023-navigation', '/js/main.js?v=20261023-navigation'])
+      cache.addAll(['/offline.html', '/css/main.css?v=20261023-scroll', '/js/main.js?v=20261023-scroll'])
     ).then(self.skipWaiting())
   );
 });

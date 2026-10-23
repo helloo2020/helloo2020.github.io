@@ -19,6 +19,91 @@
     });
   }
 
+  /* 首页连续阅读：保留静态分页作为无 JavaScript / 旧浏览器后备。 */
+  var postList = document.querySelector('[data-post-list]');
+  var pagination = document.querySelector('[data-post-pagination]');
+  var nextLink = pagination && pagination.querySelector('[data-next-page]');
+  if (postList && nextLink && window.IntersectionObserver && window.fetch && window.AbortController) {
+    var status = pagination.querySelector('[data-pagination-status]');
+    var retry = pagination.querySelector('[data-pagination-retry]');
+    var nextURL = new URL(nextLink.href, location.href);
+    var loadedPages = new Set([location.pathname]);
+    var loading = false;
+    var failed = false;
+    pagination.classList.add('is-continuous');
+    nextLink.hidden = true;
+
+    var observer = new IntersectionObserver(function (entries) {
+      if (entries.some(function (entry) { return entry.isIntersecting; }) && !failed) loadNextPage();
+    }, { rootMargin: '0px 0px 240px 0px' });
+
+    function loadNextPage() {
+      if (loading || !nextURL) return;
+      loading = true;
+      failed = false;
+      var restoreFocus = document.activeElement === retry;
+      retry.hidden = true;
+      nextLink.hidden = true;
+      status.hidden = false;
+      status.textContent = '正在加载文章…';
+      postList.setAttribute('aria-busy', 'true');
+      var controller = new AbortController();
+      var timeout = setTimeout(function () { controller.abort(); }, 15000);
+      var requestedURL = nextURL;
+
+      fetch(requestedURL.href, { signal: controller.signal, mode: 'same-origin' })
+        .then(function (response) {
+          if (!response.ok) throw new Error('Page unavailable');
+          return response.text().then(function (html) {
+            return { html: html, url: response.url || requestedURL.href };
+          });
+        })
+        .then(function (result) {
+          var page = new DOMParser().parseFromString(result.html, 'text/html');
+          var articles = Array.prototype.slice.call(page.querySelectorAll('[data-post-list] > .post-item'));
+          var existingLinks = new Set(Array.prototype.map.call(postList.querySelectorAll('h2 a'), function (a) {
+            return a.getAttribute('href');
+          }));
+          articles = articles.filter(function (article) {
+            var title = article.querySelector('h2 a');
+            return title && !existingLinks.has(title.getAttribute('href'));
+          });
+          if (!articles.length) throw new Error('No new articles');
+          var following = page.querySelector('[data-post-pagination] [data-next-page]');
+          var followingURL = following ? new URL(following.getAttribute('href'), result.url) : null;
+          if (followingURL && (followingURL.origin !== location.origin || loadedPages.has(followingURL.pathname) || followingURL.pathname === requestedURL.pathname)) {
+            throw new Error('Invalid next page');
+          }
+          var fragment = document.createDocumentFragment();
+          articles.forEach(function (article) { fragment.appendChild(document.importNode(article, true)); });
+          var firstNewTitle = fragment.querySelector('h2 a');
+          postList.appendChild(fragment);
+          loadedPages.add(requestedURL.pathname);
+          nextURL = followingURL;
+          if (nextURL) nextLink.href = nextURL.href;
+          status.textContent = nextURL ? '' : '已显示全部文章';
+          status.hidden = Boolean(nextURL);
+          if (!nextURL) observer.disconnect();
+          if (restoreFocus && firstNewTitle) firstNewTitle.focus({ preventScroll: true });
+          failed = false;
+        })
+        .catch(function () {
+          failed = true;
+          status.textContent = '文章暂时未能加载';
+          retry.hidden = false;
+          nextLink.hidden = false;
+        })
+        .then(function () {
+          clearTimeout(timeout);
+          loading = false;
+          postList.removeAttribute('aria-busy');
+        });
+    }
+
+    retry.addEventListener('click', loadNextPage);
+    observer.observe(pagination);
+  }
+
   /* 文章目录 */
   var content = document.querySelector('.post-content');
   var tocDesktop = document.getElementById('toc-desktop');
@@ -49,37 +134,54 @@
     }
   }
 
-  /* 归档标签筛选 */
-  var pills = Array.prototype.slice.call(document.querySelectorAll('.filter-pills .pill'));
-  var items = Array.prototype.slice.call(document.querySelectorAll('.archive-item'));
-  var years = Array.prototype.slice.call(document.querySelectorAll('.archive-year'));
-  if (pills.length && items.length) {
-    pills.forEach(function (pill) {
-      pill.addEventListener('click', function () {
-        pills.forEach(function (p) { p.classList.remove('is-active'); });
-        pill.classList.add('is-active');
-        var filter = pill.getAttribute('data-filter');
-        items.forEach(function (item) {
-          var tags = ' ' + (item.getAttribute('data-tags') || '') + ' ';
-          item.hidden = filter !== '全部' && tags.indexOf(' ' + filter + ' ') === -1;
-        });
-        years.forEach(function (year) {
-          var visible = items.some(function (item) {
-            return !item.hidden && year.contains(item);
-          });
-          year.hidden = !visible;
-        });
+  /* 归档：标签 / 年份各自筛选，不叠加。 */
+  var tagPanel = document.getElementById('tag-filters');
+  var yearPanel = document.getElementById('year-filters');
+  var modeGroup = document.querySelector('.archive-filter-modes');
+  if (tagPanel && yearPanel && modeGroup) {
+    var archiveMode = 'tag';
+    var selectedFilters = { tag: '全部', year: '全部' };
+    var modeButtons = Array.from(modeGroup.querySelectorAll('[data-filter-mode]'));
+    var tagButtons = Array.from(tagPanel.querySelectorAll('[data-filter]'));
+    var yearButtons = Array.from(yearPanel.querySelectorAll('[data-year-filter]'));
+    var archiveYears = Array.from(document.querySelectorAll('.archive-year'));
+    function applyArchiveFilter() {
+      tagPanel.hidden = archiveMode !== 'tag';
+      yearPanel.hidden = archiveMode !== 'year';
+      modeButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.filterMode === archiveMode)); });
+      tagButtons.concat(yearButtons).forEach(function (b) {
+        var selected = b.hasAttribute('data-filter') ? b.dataset.filter === selectedFilters.tag : b.dataset.yearFilter === selectedFilters.year;
+        b.classList.toggle('is-active', selected);
+        b.setAttribute('aria-pressed', String(selected));
       });
-    });
-
-    /* 从文章里的标签跳转过来时，自动按该标签筛选 */
-    var initialHash = decodeURIComponent((location.hash || '').replace(/^#/, ''));
-    if (initialHash) {
-      var matchedPill = pills.filter(function (p) {
-        return p.getAttribute('data-filter') === initialHash;
-      })[0];
-      if (matchedPill) matchedPill.click();
+      archiveYears.forEach(function (year) {
+        var visible = false;
+        year.querySelectorAll('.archive-item').forEach(function (item) {
+          var filter = selectedFilters[archiveMode];
+          var matches = filter === '全部' || (archiveMode === 'year' ? year.dataset.year === filter : (' ' + item.dataset.tags + ' ').indexOf(' ' + filter + ' ') !== -1);
+          item.hidden = !matches;
+          visible = visible || matches;
+        });
+        year.hidden = !visible;
+      });
     }
+    modeButtons.forEach(function (b) { b.addEventListener('click', function () { archiveMode = b.dataset.filterMode; applyArchiveFilter(); }); });
+    tagButtons.forEach(function (b) { b.addEventListener('click', function () { selectedFilters.tag = b.dataset.filter; applyArchiveFilter(); }); });
+    yearButtons.forEach(function (b) { b.addEventListener('click', function () { selectedFilters.year = b.dataset.yearFilter; applyArchiveFilter(); }); });
+    try {
+      var initialTag = decodeURIComponent(location.hash.slice(1));
+      if (tagButtons.some(function (b) { return b.dataset.filter === initialTag; })) selectedFilters.tag = initialTag;
+    } catch (e) { /* Invalid hash leaves all articles visible. */ }
+    window.addEventListener('hashchange', function () {
+      try {
+        var tag = decodeURIComponent(location.hash.slice(1));
+        if (tagButtons.some(function (b) { return b.dataset.filter === tag; })) {
+          archiveMode = 'tag'; selectedFilters.tag = tag; applyArchiveFilter();
+        }
+      } catch (e) {}
+    });
+    modeGroup.hidden = false;
+    applyArchiveFilter();
   }
 
   /* 复制按钮 */
