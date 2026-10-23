@@ -11,8 +11,8 @@
     "sizes": "512x512",
     "type": "image/png"
   }],
-  "background_color": "#F7F0DF",
-  "theme_color": "#C7952E",
+  "background_color": "#FDFDFB",
+  "theme_color": "#FDFDFB",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait"

@@ -13,6 +13,9 @@
         html.setAttribute('data-theme', 'dark');
         try { localStorage.setItem('theme', 'dark'); } catch (e) {}
       }
+      var dark = html.getAttribute('data-theme') === 'dark';
+      html.style.colorScheme = dark ? 'dark' : 'light';
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#181E1B' : '#FDFDFB';
     });
   }
 
