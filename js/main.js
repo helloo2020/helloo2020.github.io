@@ -104,6 +104,19 @@
     observer.observe(pagination);
   }
 
+  /* Export filenames are not useful image descriptions. Keep the real caption visible. */
+  document.querySelectorAll('.post-content img').forEach(function (img) {
+    if (!/\.(jpe?g|png|webp)$/i.test(img.alt || '')) return;
+    var known = {
+      'D5EA9148': '深夜抵达羽田机场',
+      'CCE4ED83': '街边咖啡店',
+      '3CD28C37': '明治神宫的入口',
+      '3127BC08': '神社里挂着的祈福木板'
+    };
+    var key = Object.keys(known).find(function (prefix) { return img.alt.indexOf(prefix) === 0; });
+    img.alt = key ? known[key] : '文章配图';
+  });
+
   /* 文章目录 */
   var content = document.querySelector('.post-content');
   var tocDesktop = document.getElementById('toc-desktop');
@@ -131,6 +144,9 @@
       });
       tocDesktop.hidden = false;
       tocMobile.hidden = false;
+      tocMobile.addEventListener('click', function(event) {
+        if (event.target.closest('a')) tocMobile.open = false;
+      });
     }
   }
 

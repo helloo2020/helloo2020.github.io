@@ -830,3 +830,11 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 .archive-filter-modes { display:flex; gap:1.4rem; margin-bottom:1rem; font-family:var(--sans); }
 .archive-filter-modes button { background:none; border:0; border-bottom:1px solid transparent; padding:0.3rem 0; color:var(--ink-soft); font:inherit; cursor:pointer; }
 .archive-filter-modes button[aria-pressed="true"] { color:var(--ink); border-bottom-color:var(--link); }
+
+@media (max-width: 767px) {
+ .toc-mobile { position: sticky; top: 60px; z-index: 20; background: var(--paper); padding: 10px 12px; border: 1px solid var(--hairline); }
+ .toc-mobile[open] { max-height: 65vh; overflow-y: auto; }
+ .toc-mobile summary { min-height: 24px; }
+}
+
+@media (max-width:767px) { .post-content :is(h1,h2,h3) { scroll-margin-top:140px; } }
