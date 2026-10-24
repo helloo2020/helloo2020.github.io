@@ -147,6 +147,66 @@
       tocMobile.addEventListener('click', function(event) {
         if (event.target.closest('a')) tocMobile.open = false;
       });
+
+      var desktopLinks = Array.from(tocDesktopList.querySelectorAll('a'));
+      var mobileLinks = Array.from(tocMobileList.querySelectorAll('a'));
+      var desktopViewport = window.matchMedia('(min-width: 1100px)');
+      var activeHeading = -1;
+      var tocFrame = 0;
+      var tocHover = false;
+      var tocPauseUntil = 0;
+
+      function queueTocUpdate() {
+        if (!tocFrame) tocFrame = requestAnimationFrame(updateToc);
+      }
+
+      function updateToc() {
+        tocFrame = 0;
+        var nav = document.querySelector('.site-nav');
+        var readingTop = (nav ? nav.getBoundingClientRect().bottom : 60) + 24;
+        if (!desktopViewport.matches) {
+          readingTop = Math.max(readingTop, tocMobile.querySelector('summary').getBoundingClientRect().bottom + 16);
+        }
+        var anchorOffset = parseFloat(window.getComputedStyle(headings[0]).scrollMarginTop) || 0;
+        readingTop = Math.max(readingTop, anchorOffset + 2);
+        var current = 0;
+        headings.forEach(function (heading, index) {
+          if (heading.getBoundingClientRect().top <= readingTop) current = index;
+        });
+        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) current = headings.length - 1;
+        if (current !== activeHeading) {
+          desktopLinks.concat(mobileLinks).forEach(function (link) { link.removeAttribute('aria-current'); });
+          desktopLinks[current].setAttribute('aria-current', 'location');
+          mobileLinks[current].setAttribute('aria-current', 'location');
+          activeHeading = current;
+        }
+
+        // Scroll only the directory, never the article. Let manual browsing take priority.
+        var container = desktopViewport.matches ? tocDesktopList : tocMobile.querySelector('nav');
+        var keyboardFocus = container.contains(document.activeElement) && document.activeElement.matches(':focus-visible');
+        if ((!desktopViewport.matches && !tocMobile.open) || tocHover || Date.now() < tocPauseUntil || keyboardFocus) return;
+        var link = desktopViewport.matches ? desktopLinks[current] : mobileLinks[current];
+        var bounds = container.getBoundingClientRect();
+        var item = link.getBoundingClientRect();
+        if (item.top < bounds.top + 12) container.scrollTop += item.top - bounds.top - 12;
+        else if (item.bottom > bounds.bottom - 12) container.scrollTop += item.bottom - bounds.bottom + 12;
+      }
+
+      [tocDesktop, tocMobile].forEach(function (panel) {
+        panel.addEventListener('pointerenter', function (event) { if (event.pointerType === 'mouse') tocHover = true; });
+        panel.addEventListener('pointerleave', function () { tocHover = false; queueTocUpdate(); });
+        panel.addEventListener('wheel', function () { tocPauseUntil = Date.now() + 1800; }, { passive: true });
+        panel.addEventListener('touchstart', function () { tocPauseUntil = Date.now() + 1800; }, { passive: true });
+        panel.addEventListener('touchmove', function () { tocPauseUntil = Date.now() + 1800; }, { passive: true });
+        panel.addEventListener('focusout', queueTocUpdate);
+      });
+      tocMobile.addEventListener('toggle', queueTocUpdate);
+      window.addEventListener('scroll', queueTocUpdate, { passive: true });
+      window.addEventListener('resize', queueTocUpdate);
+      window.addEventListener('hashchange', queueTocUpdate);
+      window.addEventListener('load', queueTocUpdate);
+      if (window.ResizeObserver) new ResizeObserver(queueTocUpdate).observe(content);
+      queueTocUpdate();
     }
   }
 

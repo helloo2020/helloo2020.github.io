@@ -506,6 +506,7 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 
 /* ---------- 目录 ---------- */
 
+.post-content h1 { scroll-margin-top: 5rem; }
 .toc {
   font-family: var(--sans);
   font-size: 0.88rem;
@@ -527,6 +528,10 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 }
 .toc a { color: var(--ink-soft); }
 .toc a:hover { color: var(--link); text-decoration: none; }
+.toc a[aria-current="location"],
+.toc-mobile a[aria-current="location"] { color: var(--link); font-weight: 600; }
+.toc a:focus-visible,
+.toc-mobile a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .toc .toc-depth-1 { padding-left: 0.8rem; }
 .toc .toc-depth-2 { padding-left: 1.6rem; }
 
@@ -787,6 +792,14 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
     grid-row: 1;
   }
   .post-side:not([hidden]) { display: block; }
+  .toc {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 7rem);
+    max-height: calc(100dvh - 7rem);
+  }
+  .toc h3 { flex-shrink: 0; }
+  .toc ul { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; padding-right: 0.5rem; scrollbar-width: thin; }
   .post-main { grid-column: 1; grid-row: 1; }
 }
 
@@ -831,10 +844,11 @@ a.tag:hover { filter: brightness(0.97); text-decoration: none; }
 .archive-filter-modes button { background:none; border:0; border-bottom:1px solid transparent; padding:0.3rem 0; color:var(--ink-soft); font:inherit; cursor:pointer; }
 .archive-filter-modes button[aria-pressed="true"] { color:var(--ink); border-bottom-color:var(--link); }
 
-@media (max-width: 767px) {
- .toc-mobile { position: sticky; top: 60px; z-index: 20; background: var(--paper); padding: 10px 12px; border: 1px solid var(--hairline); }
- .toc-mobile[open] { max-height: 65vh; overflow-y: auto; }
+@media (max-width: 1099px) {
+ .toc-mobile { position: sticky; top: 5.5rem; z-index: 20; background: var(--paper); padding: 10px 12px; border: 1px solid var(--hairline); }
+ .toc-mobile nav { max-height: min(55vh, calc(100vh - 11rem)); max-height: min(55dvh, calc(100dvh - 11rem)); overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
  .toc-mobile summary { min-height: 24px; }
+ .post-content :is(h1,h2,h3) { scroll-margin-top: 140px; }
 }
 
-@media (max-width:767px) { .post-content :is(h1,h2,h3) { scroll-margin-top:140px; } }
+@media (max-width:767px) { .toc-mobile { top: 60px; } }
