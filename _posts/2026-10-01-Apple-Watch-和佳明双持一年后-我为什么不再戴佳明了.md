@@ -10,7 +10,7 @@ article_studio: true
 source_account: "Scond"
 source_url: "https://mp.weixin.qq.com/s/c1Ug6IDUMUI8MNVeh9tAqw"
 tags:
-  - "跑步"
+  - "数码"
 ---
 上一篇写 Apple Watch Ultra 4 和佳明 255 的跑步对比，评论区吵成了两派
 
@@ -22,12 +22,12 @@ tags:
 
 我想说的是：**为什么我最后只留下了 Apple Watch，不再双持**
 
-![IMG_7480.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/02-IMG-7480.jpg){: width="490" }
+![IMG_7480.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/02-b95d70d7b879873eeffe7e88c73be4980c4bb0b53751c74853710900ba81c586-c393609f.jpg){: width="490" }
 
 ## 1. 如果只看运动和续航，我会选佳明
 
 去年冬天备战广州全马，深圳天气变冷，Apple Watch Ultra 2 的心率经常失真，有时候刚开始跑，心率突然飙到 170+；有时候跑到一半，心率直接没了
-![IMG_7485.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/03-IMG-7485.jpg){: width="234" }
+![IMG_7485.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/03-5f80dba8d2eac566ae828b754485d1260b00576834dbdef912468f111368857c-ed242636.jpg){: width="234" }
 <span style="font-size:12px">*25年10月，21km长距离，心率全丢了，盲跑</span>
 
 对于日常使用来说，这可能不是什么大问题
@@ -41,7 +41,7 @@ tags:
 
 **平时戴 Apple Watch，跑步的时候，右手再戴一块佳明。**
 
-![IMG_7479.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/04-IMG-7479.jpg){: width="585" }
+![IMG_7479.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/04-07f400f8f24597caf0001fbeddc86773f019b3013baa92d81cb6e98e6d76eb7f-92627bef.jpg){: width="585" }
 <span style="font-size:12px">*刚入手佳明的感受</span>
 
 而且必须承认，佳明确实解决了我的问题。刚买回来那段时间，我甚至觉得：
@@ -51,7 +51,7 @@ tags:
 训练状态、恢复、跑步动态，各种围绕运动的数据更加完整。续航更不用说。
 
 
-![Picsew_20261001153003.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/05-Picsew-20261001153003.jpg){: width="373" }
+![Picsew_20261001153003.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/05-060b5cf1e60c620ddd07eb78451992fa90f39fecc925bf68d99840bdb36d5d1f-1061898d.jpg){: width="373" }
 
 
 即使是最新的Apple Watch Ultra 4，也只能大概三天左右充一次电，但佳明可以轻松坚持一两个星期
@@ -73,11 +73,11 @@ tags:
 **APP和操作过于复杂**
 
 2个APP，一个Connect，一个佳速度
-![IMG_7484.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/06-IMG-7484.jpg){: width="463" }
+![IMG_7484.jpeg](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/06-04916962a62afd38a5484172d910daca2a7048d2d0627154f01476084d3eefdc-1e151d39.jpg){: width="463" }
 软件里，设置一层套一层，一个功能下面还有另外一层菜单
 
 有时候我只是想改一个很简单的设置，在手表和 App 里找半天都找不到
-![IMG_7483.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/07-IMG-7483.png){: width="157" }
+![IMG_7483.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/07-66d80b91a48a4671ee75fd6aa4135fff2c02be29df101ce6ec55c931e567fa38-b3f8f533.png){: width="157" }
 没办法，我需要经常**打开小红书，搜索佳明 XXX 怎么设置**
 
 手表的按键交互也是一样
@@ -112,7 +112,7 @@ tags:
 **Apple Watch + iPhone + MacBook+Apple Health ，这些每天都要使用的数码产品连接在一起，才是生态。**
 
 - 比如我早上醒来，手表已经记录了昨晚的睡眠和生命体征；
-![IMG_7487.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/08-IMG-7487.png){: width="151" }
+![IMG_7487.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/08-9c7c80a37a0a55184cb368c4abd8acd0e0b71516f2e0f5ca0b8a05975ef13e76-a0d2f410.png){: width="151" }
 
 - 出门的时候，手机上的导航可以直接把转向提示同步到手腕；
  
@@ -160,11 +160,11 @@ tags:
 我可以把 Apple Health 的数据导出来，直接交给 AI 做长期分析
 
 也可以授权 ChatGPT 读取健康数据，让它结合最近的睡眠、运动、心率和历史趋势进行分析
-![IMG_7488.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/09-IMG-7488.png){: width="230" }
+![IMG_7488.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/09-819ee0f38a0568a3d55a6104b22f9eb19d0bc9274082ba565afe261762839144-3c87aa06.png){: width="230" }
 
 现在我甚至可以每周自动生成一份健康周报，看看过去一周的运动量、恢复和身体状态发生了什么变化
 
-![IMG_7489.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/10-IMG-7489.png){: width="165" }
+![IMG_7489.png](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/10-95ac0565aff25bfd0f1ea7b86b88f71db4131d73bd3034a0a33c9a2c19d897a9-09207d65.png){: width="165" }
 
 AI告诉我：
 
@@ -234,4 +234,4 @@ AI告诉我：
 
 欢迎关注公众号：Scond
 
-![公众号二维码](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/01-scond.jpg)
+![公众号二维码](/img/article-studio/2026-10-01-Apple-Watch-和佳明双持一年后-我为什么不再戴佳明了/01-公众号二维码-b1a85f65.jpg)
