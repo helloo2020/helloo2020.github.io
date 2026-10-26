@@ -11,6 +11,7 @@ source_account: "Scond"
 source_url: "https://mp.weixin.qq.com/s/c1Ug6IDUMUI8MNVeh9tAqw"
 tags:
   - "数码"
+  - "跑步"
 ---
 上一篇写 Apple Watch Ultra 4 和佳明 255 的跑步对比，评论区吵成了两派
 
